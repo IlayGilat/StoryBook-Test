@@ -1,0 +1,49 @@
+<nav class="pagination-shell" aria-label="Pagination">
+  <div class="pagination-heading">
+    <p class="eyebrow">Component benchmark</p>
+    <h1>Pagination</h1>
+    <p class="summary">Page {{ currentPage }} of {{ totalPages }}</p>
+  </div>
+  <div class="pagination-data" aria-live="polite">
+    <div class="data-header">
+      <span>Visible data</span>
+      <span>{{ firstItemNumber }}-{{ lastItemNumber }} of {{ _items.length }} records</span>
+    </div>
+    <ul>
+      <li *ngFor="let item of visibleItems" class="data-row" data-pagination-item>
+        <strong>{{ item.name }}</strong>
+        <span>{{ item.category }}</span>
+      </li>
+    </ul>
+  </div>
+  <div class="pagination-controls">
+    <button
+      class="pagination-button"
+      type="button"
+      aria-label="Previous page"
+      [disabled]="currentPage === 1"
+      (click)="goToPage(currentPage - 1)">
+      Previous
+    </button>
+    <div class="page-list" aria-label="Pages">
+      <button
+        *ngFor="let page of visiblePages"
+        class="pagination-button page-number"
+        type="button"
+        [attr.aria-label]="'Page ' + page"
+        [attr.aria-current]="page === currentPage ? 'page' : null"
+        [class.selected]="page === currentPage"
+        (click)="goToPage(page)">
+        {{ page }}
+      </button>
+    </div>
+    <button
+      class="pagination-button"
+      type="button"
+      aria-label="Next page"
+      [disabled]="currentPage === totalPages"
+      (click)="goToPage(currentPage + 1)">
+      Next
+    </button>
+  </div>
+</nav>

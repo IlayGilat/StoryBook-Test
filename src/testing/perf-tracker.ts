@@ -11,6 +11,35 @@ export interface PerformanceMetrics {
 }
 
 /**
+ * Standard double requestAnimationFrame promise to ensure DOM painting and layout completion.
+ */
+export function waitForDoubleRaf(): Promise<void> {
+  return new Promise<void>((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  );
+}
+
+export interface BenchmarkInteractionOptions {
+  containerSelector: string;
+  sizeEventName: string;
+  datasetSize: number;
+  interactionWindowMs: number;
+  beforeStart?: (waitFrame: () => Promise<void>) => Promise<void> | void;
+  tick?: (actionIndex: number, waitFrame: () => Promise<void>) => Promise<void> | void;
+}
+
+export interface BenchmarkInteractionResult {
+  datasetSize: number;
+  durationMs: number;
+  averageFps: number;
+  averageFrameMs: number;
+  droppedFrames: number;
+  longTasks: number;
+  longTaskDurationMs: number;
+  peakHeapMb?: number;
+}
+
+/**
  * Tracks browser rendering health by sampling animation frame timing and observing
  * long task entries while a UI interaction is running.
  */
@@ -93,6 +122,87 @@ export class PerformanceTracker {
    */
   stop(): PerformanceMetrics {
     return this.stopMonitoring();
+  }
+
+  /**
+   * Executes a standardized performance interaction loop in the browser.
+   * Handles container event dispatch, readiness awaiting, tracker lifecycle,
+   * frame timing, and peak heap sampling.
+   */
+  async runInteraction(options: BenchmarkInteractionOptions): Promise<BenchmarkInteractionResult> {
+    const {
+      containerSelector,
+      sizeEventName,
+      datasetSize,
+      interactionWindowMs,
+      beforeStart,
+      tick,
+    } = options;
+
+    const waitFrame = () => waitForDoubleRaf();
+
+    // Reset container readiness
+    document.querySelector(containerSelector)?.removeAttribute('data-ready');
+
+    // Dispatch size event
+    window.dispatchEvent(new CustomEvent(sizeEventName, { detail: { size: datasetSize } }));
+
+    // Wait for container readiness
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        const el = document.querySelector(`${containerSelector}[data-ready="true"]`);
+        if (el) {
+          resolve();
+          return;
+        }
+        requestAnimationFrame(check);
+      };
+      check();
+    });
+    await waitFrame();
+
+    // Run optional verification before starting benchmark metrics collection
+    if (beforeStart) {
+      await beforeStart(waitFrame);
+    }
+
+    const endAt = performance.now() + interactionWindowMs;
+    let actionIndex = 0;
+
+    this.start();
+
+    let peakHeapBytes =
+      (performance as unknown as { memory?: { usedJSHeapSize?: number } }).memory
+        ?.usedJSHeapSize ?? 0;
+
+    while (performance.now() < endAt) {
+      if (tick) {
+        await tick(actionIndex, waitFrame);
+      }
+      await waitFrame();
+      const currentHeap =
+        (performance as unknown as { memory?: { usedJSHeapSize?: number } }).memory
+          ?.usedJSHeapSize ?? 0;
+      if (currentHeap > peakHeapBytes) {
+        peakHeapBytes = currentHeap;
+      }
+      actionIndex += 1;
+    }
+
+    const metrics = this.stop();
+    return {
+      datasetSize,
+      durationMs: metrics.durationMs,
+      averageFps: metrics.averageFps,
+      averageFrameMs: 1000 / Math.max(metrics.averageFps, 0.001),
+      droppedFrames: metrics.droppedFrames,
+      longTasks: metrics.longTasks,
+      longTaskDurationMs: metrics.longTaskDurationMs,
+      peakHeapMb:
+        peakHeapBytes > 0
+          ? Number((peakHeapBytes / (1024 * 1024)).toFixed(2))
+          : undefined,
+    };
   }
 
   /**

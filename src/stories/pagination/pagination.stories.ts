@@ -1,13 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/angular';
+import { PaginationContainerComponent } from './pagination-container.component';
 
-import { PaginationComponent } from './pagination.component';
-import '../../testing/perf-tracker';
-
-const meta: Meta<PaginationComponent> = {
+const meta: Meta<PaginationContainerComponent> = {
   title: 'Performance/Pagination',
-  component: PaginationComponent,
-  tags: ['autodocs'],
-  parameters: { layout: 'fullscreen' },
+  component: PaginationContainerComponent,
   argTypes: {
     totalItems: { control: { type: 'number', min: 0, max: 100000, step: 100 } },
     pageSize: { control: { type: 'number', min: 1, max: 100, step: 1 } },
@@ -16,8 +12,8 @@ const meta: Meta<PaginationComponent> = {
 };
 
 export default meta;
-type Story = StoryObj<PaginationComponent>;
+type Story = StoryObj<PaginationContainerComponent>;
 
 export const Stress: Story = {
-  args: { totalItems: 1000, pageSize: 25, currentPage: 1 },
+  args: { totalItems: 0, pageSize: 25, currentPage: 1 },
 };

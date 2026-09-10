@@ -1,0 +1,36 @@
+<section class="table-shell" aria-label="Performance table">
+  <header class="table-header">
+    <div>
+      <p class="eyebrow">Component benchmark</p>
+      <h1>Inventory table</h1>
+      <p class="summary">{{ filteredRows.length | number }} of {{ _rows.length | number }} records</p>
+    </div>
+    <label class="filter">
+      <span>Filter records</span>
+      <input [(ngModel)]="filterText" (ngModelChange)="onFilterChange()" type="search" placeholder="Search name or category" />
+    </label>
+  </header>
+  <div class="table-viewport" (scroll)="onScroll()">
+    <table>
+      <thead>
+        <tr>
+          <th *ngFor="let column of columns">
+            <button type="button" (click)="sortBy(column.key)">
+              {{ column.label }}
+              <span aria-hidden="true">{{ sortKey === column.key ? (sortDirection === 1 ? '↑' : '↓') : '↕' }}</span>
+            </button>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of filteredRows; trackBy: trackRow">
+          <td>{{ row.id }}</td>
+          <td>{{ row.name }}</td>
+          <td>{{ row.category }}</td>
+          <td>{{ row.value | number }}</td>
+          <td><span class="status" [class.paused]="row.status === 'Paused'">{{ row.status }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

@@ -1,0 +1,146 @@
+<section class="tree-grid-shell" aria-label="Hierarchical Tree Grid">
+  <header class="tree-grid-header">
+    <div>
+      <p class="eyebrow">Enterprise Hierarchy Benchmark</p>
+      <h1>Project Hierarchy Tree</h1>
+      <p class="summary">
+        Showing {{ visibleFlatRows.length | number }} visible rows
+        ({{ filteredRoots.length | number }} root departments, {{ totalNodesCount | number }} total items)
+        &bull; <strong class="selected-count">{{ selectedNodeIds.size | number }} selected</strong>
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <label class="filter">
+        <span>Filter hierarchy</span>
+        <input
+          [(ngModel)]="filterText"
+          (ngModelChange)="onFilterChange()"
+          type="search"
+          placeholder="Search department, team, project..."
+          aria-label="Filter records"
+        />
+      </label>
+      <div class="expand-buttons">
+        <button type="button" class="action-btn" (click)="expandAll()" aria-label="Expand all nodes">Expand All</button>
+        <button type="button" class="action-btn" (click)="collapseAll()" aria-label="Collapse all nodes">Collapse All</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="table-viewport" (scroll)="onScroll()">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-select">
+            <input
+              type="checkbox"
+              aria-label="Select all visible nodes"
+              [checked]="isAllSelected"
+              [indeterminate]="isAllIndeterminate"
+              (change)="toggleSelectAll($event)"
+            />
+          </th>
+          <th *ngFor="let col of columns" [class]="'col-' + col.key">
+            <button type="button" (click)="sortBy(col.key)" [attr.aria-label]="'Sort by ' + col.label">
+              {{ col.label }}
+              <span aria-hidden="true">{{ sortKey === col.key ? (sortDirection === 1 ? '▲' : '▼') : '↕' }}</span>
+            </button>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let row of visibleFlatRows; trackBy: trackRow"
+          class="tree-row depth-{{ row.depth }}"
+          [class.row-selected]="row.isSelected"
+          [attr.data-node-id]="row.node.id"
+          [attr.data-depth]="row.depth"
+        >
+          <td class="col-select">
+            <input
+              type="checkbox"
+              [checked]="row.isSelected"
+              [indeterminate]="row.isIndeterminate"
+              (change)="toggleSelect(row.node)"
+              [attr.aria-label]="'Select ' + row.node.name"
+            />
+          </td>
+          <td class="col-name">
+            <div class="name-cell" [style.padding-left.px]="row.depth * 22">
+              <button
+                *ngIf="row.hasChildren"
+                type="button"
+                class="toggle-btn"
+                (click)="toggleExpand(row.node.id)"
+                [attr.aria-label]="row.isExpanded ? 'Collapse ' + row.node.name : 'Expand ' + row.node.name"
+                [attr.aria-expanded]="row.isExpanded"
+              >
+                <span class="chevron" [class.open]="row.isExpanded">▶</span>
+              </button>
+              <span *ngIf="!row.hasChildren" class="leaf-spacer" aria-hidden="true">&bull;</span>
+              <span class="node-depth-badge">{{ getDepthLabel(row.depth) }}</span>
+              <strong class="node-title">{{ row.node.name }}</strong>
+              <span *ngIf="row.hasChildren" class="children-badge">({{ row.node.children.length }})</span>
+            </div>
+          </td>
+          <td class="col-category">{{ row.node.category }}</td>
+          <td class="col-value">{{ row.node.value | number }}</td>
+          <td class="col-status">
+            <span class="status-badge" [ngClass]="row.node.status.toLowerCase()">
+              {{ row.node.status }}
+            </span>
+          </td>
+          <td class="col-progress">
+            <div class="progress-bar-wrap">
+              <div class="progress-bar" [style.width.%]="row.node.progress"></div>
+              <span class="progress-text">{{ row.node.progress }}%</span>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="visibleFlatRows.length === 0">
+          <td colspan="6" class="no-records">No matching records found.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="tree-grid-footer">
+    <div class="pagination-info">
+      Page {{ currentPage }} of {{ totalPages }} ({{ filteredRoots.length }} root departments)
+    </div>
+    <div class="pagination-controls">
+      <button
+        class="pagination-button"
+        type="button"
+        aria-label="Previous page"
+        [disabled]="currentPage === 1"
+        (click)="goToPage(currentPage - 1)"
+      >
+        Previous
+      </button>
+      <div class="page-list">
+        <button
+          *ngFor="let page of visiblePages"
+          class="pagination-button page-number"
+          type="button"
+          [attr.aria-label]="'Page ' + page"
+          [attr.aria-current]="page === currentPage ? 'page' : null"
+          [class.selected]="page === currentPage"
+          (click)="goToPage(page)"
+        >
+          {{ page }}
+        </button>
+      </div>
+      <button
+        class="pagination-button"
+        type="button"
+        aria-label="Next page"
+        [disabled]="currentPage === totalPages"
+        (click)="goToPage(currentPage + 1)"
+      >
+        Next
+      </button>
+    </div>
+  </footer>
+</section>

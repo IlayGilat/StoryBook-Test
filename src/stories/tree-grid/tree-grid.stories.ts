@@ -1,13 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/angular';
+import { TreeGridContainerComponent } from './tree-grid-container.component';
 
-import { TreeGridComponent } from './tree-grid.component';
-import '../../testing/perf-tracker';
-
-const meta: Meta<TreeGridComponent> = {
+const meta: Meta<TreeGridContainerComponent> = {
   title: 'Performance/Tree Grid',
-  component: TreeGridComponent,
-  tags: ['autodocs'],
-  parameters: { layout: 'fullscreen' },
+  component: TreeGridContainerComponent,
   argTypes: {
     datasetSize: { control: { type: 'number', min: 0, max: 10000, step: 50 } },
     pageSize: { control: { type: 'number', min: 1, max: 50, step: 1 } },
@@ -15,7 +11,7 @@ const meta: Meta<TreeGridComponent> = {
 };
 
 export default meta;
-type Story = StoryObj<TreeGridComponent>;
+type Story = StoryObj<TreeGridContainerComponent>;
 
 export const Stress: Story = {
   args: {
@@ -30,4 +26,3 @@ export const Populated: Story = {
     pageSize: 5,
   },
 };
-

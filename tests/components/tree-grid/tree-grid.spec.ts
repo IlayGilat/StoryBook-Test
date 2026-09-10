@@ -5,7 +5,7 @@ import { treeGridPerformanceScenario } from './utils/tree-grid-performance';
 test.describe('tree grid performance stress test', () => {
   test('verifies tree grid interaction and hierarchy features', async ({ page }) => {
     await page.goto('/iframe.html?id=performance-tree-grid--populated&viewMode=story');
-    await page.locator('storybook-tree-grid').waitFor();
+    await page.locator('storybook-tree-grid-container[data-ready="true"]').waitFor();
 
     // Verify initial rows are rendered
     const rows = page.locator('tbody tr.tree-row');

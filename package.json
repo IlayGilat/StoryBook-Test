@@ -14,7 +14,8 @@
     "test:perf:headed": "npm run build-storybook && playwright test --headed",
     "test:fast": "playwright test --headed",
     "test:fast:table": "playwright test tests/components/table/table.spec.ts --headed",
-    "test:fast:tree-grid": "playwright test tests/components/tree-grid/tree-grid.spec.ts --headed"
+    "test:fast:tree-grid": "playwright test tests/components/tree-grid/tree-grid.spec.ts --headed",
+    "generate:component": "node scripts/generate-component.mjs"
   },
   "private": true,
   "dependencies": {
@@ -28,6 +29,7 @@
     "@angular/router": "^18.2.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
+    "zod": "^3.25.76",
     "zone.js": "~0.14.10"
   },
   "devDependencies": {
@@ -42,7 +44,6 @@
     "@storybook/angular": "^8.6.18",
     "@storybook/blocks": "^8.6.18",
     "@storybook/test": "^8.6.18",
-    "@storybook/test-runner": "^0.19.0",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^22.20.2",
     "jasmine-core": "~5.2.0",
