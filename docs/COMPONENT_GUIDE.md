@@ -96,3 +96,22 @@ Examples:
 - `npm run generate:component card-list`
 - `npm run generate:component CardList`
 - `npm run generate:component card-list -- --dry-run` (simulates file creation)
+
+---
+
+## 5. Automated AI Conversion (OpenCode Agents & Skills)
+
+When importing an existing Angular component from an application or client project, use the project-level OpenCode agent:
+
+```markdown
+@component-converter <path-to-client-component>
+```
+
+### How the Multi-Agent Pipeline Works
+1. **`component-analyzer`**: Scans the source `.ts`, `.html`, and styles. Identifies NgRx stores, actions, services, and async pipes to strip, isolating pure visual data bindings.
+2. **`schema-generator`**: Generates `src/stories/<name>/<name>.schema.ts` with Zod schema and mock data generation overrides supporting up to 100,000 items.
+3. **`dumb-component-converter`**: Creates pure presentational files (`.component.ts`, `.component.html`, `.component.less`) with `OnPush` change detection and zero service dependencies.
+4. **`perf-suite-generator`**: Generates `-container.component.ts`, `.stories.ts`, `.spec.ts`, and `utils/*-performance.ts`.
+5. **Skill Reference**: [.opencode/skills/convert-component/SKILL.md](file:///c:/Users/ilaygil/Desktop/Code/StoryBook-Test/.opencode/skills/convert-component/SKILL.md)
+6. **Validation**: Run `node .opencode/skills/convert-component/scripts/validate-conversion.mjs <name>` to verify that the generated suite satisfies all benchmark contracts.
+

@@ -20,7 +20,14 @@ Angular 18 Storybook harness for benchmarking UI component scalability, frame ra
 - **Interaction Testing (`<name>-performance.ts`)**: Delegates browser loop execution to `window.__storybookPerfTracker.runInteraction(...)`, isolating component-specific user actions.
 - **Benchmarking**: Playwright runs single-worker (`workers: 1`). Never edit or commit `.artifacts/`.
 
-- **Scaffolind**: Use the cli to scaffold new components for testing.
+- **Scaffolding CLI**: Use `npm run generate:component <name>` to scaffold new components for testing.
+- **OpenCode Conversion Agents & Skill (`.opencode/`)**:
+  - `@component-converter <component-path>`: Primary orchestrator agent converting client/enterprise Angular components (stripping NgRx, stores, services) into standalone dumb components, Zod schemas, and performance suites.
+  - **Subagents**: `component-analyzer`, `dumb-component-converter`, `schema-generator`, `perf-suite-generator`.
+  - **Project Skill**: `.opencode/skills/convert-component/SKILL.md`.
+  - **Validator**: `node .opencode/skills/convert-component/scripts/validate-conversion.mjs <name>`.
+
 ## Detailed Documentation (Progressive Disclosure)
 - Component implementation patterns, base container & scaffolding: [docs/COMPONENT_GUIDE.md](file:///c:/Users/ilaygil/Desktop/Code/StoryBook-Test/docs/COMPONENT_GUIDE.md)
 - Performance scenario configuration, CDP metrics & troubleshooting: [docs/BENCHMARKING.md](file:///c:/Users/ilaygil/Desktop/Code/StoryBook-Test/docs/BENCHMARKING.md)
+- Component Conversion Skill: [.opencode/skills/convert-component/SKILL.md](file:///c:/Users/ilaygil/Desktop/Code/StoryBook-Test/.opencode/skills/convert-component/SKILL.md)
