@@ -1,33 +1,35 @@
 # AGENTS.md
 
-## Project Overview
-Angular 18 Storybook harness for benchmarking UI component scalability, frame rates, and memory footprints under high-stress datasets (up to 100,000 items) using Playwright browser automation.
+## Repository
 
-- **Stack**: Angular 18 (standalone, Less), Storybook 8.6, Playwright, Zod.
-- **Package Manager**: `npm`.
+StoryBook-Test is an Angular 16.2.12 standalone-component harness for Storybook 8.6 and Playwright performance benchmarking at dataset sizes up to 100,000 items. It uses Less, Zod-validated deterministic data, and single-worker browser benchmarks.
 
-## Core Commands
-- `npm run storybook`: Start Storybook dev server (`http://localhost:6006`).
-- `npm run test:fast`: Run Playwright tests headed against running Storybook dev server.
-- `npm run test:perf`: Build static Storybook and run full headless benchmark suite.
-- `npx playwright test tests/components/<name>/<name>.spec.ts --headed`: Run targeted component test.
-- `npm run generate:component <name>`: Scaffold a new 8-file benchmarked component and test suite (e.g. `npm run generate:component card-list`).
+Read `.agents/shared/core-rules.md` before migration work. This file contains only durable repository rules; stage procedures live under `.agents/<stage>/AGENT.md`.
 
-## Key Architecture & Guardrails
-- **Dumb Components (`<name>.component.ts`, `<name>.component.html`, `<name>.component.less`)**: Pure presentational UI separated into logic, template, and styles with `changeDetection: ChangeDetectionStrategy.OnPush`. Accepts data strictly via `@Input()`. Zero test or generator coupling.
-- **Smart Containers (`<name>-container.component.ts`)**: Wraps dumb component. Extends `BaseBenchmarkContainerComponent<T>` from `../common/base-benchmark-container`. Automatically handles `[attr.data-ready]`, `[attr.aria-busy]`, `storybook-<name>-size` event dispatch, race guards, and double `rAF` paint cycles.
-- **Storybook Stories (`<name>.stories.ts`)**: Targets the container. Performance tracker (`window.__storybookPerfTracker`) and `parameters: { layout: 'fullscreen' }` are configured globally in `.storybook/preview.ts`.
-- **Interaction Testing (`<name>-performance.ts`)**: Delegates browser loop execution to `window.__storybookPerfTracker.runInteraction(...)`, isolating component-specific user actions.
-- **Benchmarking**: Playwright runs single-worker (`workers: 1`). Never edit or commit `.artifacts/`.
+## Commands
 
-- **Scaffolding CLI**: Use `npm run generate:component <name>` to scaffold new components for testing.
-- **OpenCode Conversion Agents & Skill (`.opencode/`)**:
-  - `@component-converter <component-path>`: Primary orchestrator agent converting client/enterprise Angular components (stripping NgRx, stores, services) into standalone dumb components, Zod schemas, and performance suites.
-  - **Subagents**: `component-analyzer`, `dumb-component-converter`, `schema-generator`, `perf-suite-generator`.
-  - **Project Skill**: `.opencode/skills/convert-component/SKILL.md`.
-  - **Validator**: `node .opencode/skills/convert-component/scripts/validate-conversion.mjs <name>`.
+- `npm run storybook` starts Storybook at `http://localhost:6006`.
+- `npm run build-storybook` builds the static Storybook.
+- `npm run test:fast` runs headed Playwright tests against a running Storybook.
+- `npm run test:perf` builds Storybook and runs the full headless benchmark suite.
+- `npx playwright test src/components/<name>/test/<name>.spec.ts --headed` runs one component suite.
+- `npm run generate:component <name>` scaffolds one top-level benchmark target.
 
-## Detailed Documentation (Progressive Disclosure)
-- Component implementation patterns, base container & scaffolding: [docs/COMPONENT_GUIDE.md](file:///c:/Users/ilaygil/Desktop/Code/StoryBook-Test/docs/COMPONENT_GUIDE.md)
-- Performance scenario configuration, CDP metrics & troubleshooting: [docs/BENCHMARKING.md](file:///c:/Users/ilaygil/Desktop/Code/StoryBook-Test/docs/BENCHMARKING.md)
-- Component Conversion Skill: [.opencode/skills/convert-component/SKILL.md](file:///c:/Users/ilaygil/Desktop/Code/StoryBook-Test/.opencode/skills/convert-component/SKILL.md)
+## Benchmark Architecture
+
+- A benchmark target owns `src/components/<name>/{ui,data,harness,test}/`.
+- UI components are standalone, presentational, `OnPush`, and communicate through explicit `@Input()`/`@Output()` contracts. They have no benchmark or test coupling.
+- Harness containers extend `BaseBenchmarkContainerComponent<T>` from `src/benchmark/harness/benchmark-container`; preserve ready/busy attributes, race guards, sizing events, and the double-`requestAnimationFrame` paint cycle.
+- Stories target the harness. Interactions use `window.__storybookPerfTracker.runInteraction(...)`.
+- Playwright remains single-worker. Never edit or commit `.artifacts/`.
+
+## Migration Operating Rules
+
+- The external production/legacy source is strictly read-only. Write only in StoryBook-Test and `.migrations/<component>/`.
+- A human invokes one migration stage at a time. Load only `.agents/shared/core-rules.md`, the active `.agents/<stage>/AGENT.md`, and artifacts/source files that stage explicitly requires. Do not preload other stages, workers, historical handoffs, or unrelated docs.
+- Delegate only through the existing `.agents/skills/subagent-driven-development/SKILL.md`; do not recreate or bypass it. The active main agent owns integration, state updates, and validation.
+- Discover the rendered component tree top-down. Create and adapt it bottom-up in strict post-order, validating each node before its parent.
+- Run `npm run generate:component <name>` once per migration, for the top-level benchmark target only. Never run it for child components.
+- Preserve DOM, styles, and behavior before refactoring. Record meaningful deviations in `.migrations/<component>/logs/decisions.md`.
+- Update state according to `.agents/shared/state-schema.md` and write the stage handoff according to `.agents/shared/handoff-contract.md`.
+- Stop immediately when the active stage's Definition of Done is met. Never auto-advance or silently perform work owned by a later stage.
