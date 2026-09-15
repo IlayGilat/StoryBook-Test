@@ -9,7 +9,6 @@ Each top-level migration owns `.migrations/<component-name>/state.json`. The fil
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "MigrationState",
   "type": "object",
-  "additionalProperties": false,
   "required": [
     "component",
     "status",
@@ -21,14 +20,10 @@ Each top-level migration owns `.migrations/<component-name>/state.json`. The fil
     "updatedAt"
   ],
   "properties": {
-    "component": {
-      "type": "string",
-      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-      "description": "Kebab-case name of the top-level component"
-    },
+    "component": { "type": "string", "description": "Kebab-case name of top-level component" },
     "sourcePath": {
       "type": "string",
-      "description": "Absolute or relative path to the read-only legacy component source"
+      "description": "Absolute or relative path to legacy component source"
     },
     "status": {
       "type": "string",
@@ -52,36 +47,16 @@ Each top-level migration owns `.migrations/<component-name>/state.json`. The fil
     },
     "completedStages": {
       "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "enum": [
-          "project-bootstrap",
-          "source-analysis",
-          "migration-planning",
-          "component-scaffold",
-          "component-tree-migration",
-          "data",
-          "harness",
-          "benchmark-integration",
-          "test",
-          "fidelity-validation",
-          "repair"
-        ]
-      }
+      "items": { "type": "string" }
     },
-    "targetLocation": {
-      "type": "string",
-      "pattern": "^src/components/[a-z0-9]+(?:-[a-z0-9]+)*$",
-      "description": "Benchmark root, for example src/components/customer-page"
-    },
+    "targetLocation": { "type": "string", "description": "e.g. src/components/<component>" },
     "warnings": {
       "type": "array",
       "items": { "type": "string" }
     },
     "lastUpdatedBy": {
       "type": "string",
-      "description": "Name of the stage or worker updating state"
+      "description": "Name of the stage or subagent updating state"
     },
     "updatedAt": {
       "type": "string",
@@ -94,10 +69,10 @@ Each top-level migration owns `.migrations/<component-name>/state.json`. The fil
 ## Deterministic Update Rules
 
 - Serialize fields in schema order and format JSON with two-space indentation plus a trailing newline.
-- Keep `completedStages` in canonical stage order, without duplicates. Add a stage only after its DoD and validation pass.
+- Append a completed stage once, after its DoD and validation pass, and retain entries in canonical stage order.
 - Set `currentStage` to the stage being executed. Never advance it on behalf of the next stage.
 - Set `status` to `in_progress` when a stage begins; use `failed` for failed validation, `blocked` for missing prerequisites, and `completed` only when the migration itself has completed its required terminal validation.
-- Replace `updatedAt` with the update's ISO 8601 UTC timestamp and set `lastUpdatedBy` to the sole writer. Only the main agent writes `state.json`; concurrently delegated workers must not edit it.
+- Replace `updatedAt` with the update's ISO 8601 UTC timestamp. Set `lastUpdatedBy` to the stage or subagent responsible for the integrated update; the main agent physically applies serialized `state.json` writes so concurrent workers never edit it directly.
 - Keep warnings concise, stable, and ordered by first discovery. Remove one only when its cause is verified resolved.
 
 ## Example
@@ -116,7 +91,7 @@ Each top-level migration owns `.migrations/<component-name>/state.json`. The fil
   ],
   "targetLocation": "src/components/customer-page",
   "warnings": [],
-  "lastUpdatedBy": "component-scaffold",
+  "lastUpdatedBy": "component-tree-migration",
   "updatedAt": "2026-09-15T10:00:00Z"
 }
 ```

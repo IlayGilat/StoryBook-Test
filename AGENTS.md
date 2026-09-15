@@ -20,7 +20,7 @@ Read `.agents/shared/core-rules.md` before migration work. This file contains on
 - A benchmark target owns `src/components/<name>/{ui,data,harness,test}/`.
 - UI components are standalone, presentational, `OnPush`, and communicate through explicit `@Input()`/`@Output()` contracts. They have no benchmark or test coupling.
 - Harness containers extend `BaseBenchmarkContainerComponent<T>` from `src/benchmark/harness/benchmark-container`; preserve ready/busy attributes, race guards, sizing events, and the double-`requestAnimationFrame` paint cycle.
-- Stories target the harness. Interactions use `window.__storybookPerfTracker.runInteraction(...)`.
+- Stories target the harness, retain `parameters: { layout: 'fullscreen' }`, and use `window.__storybookPerfTracker.runInteraction(...)` for interactions.
 - Playwright remains single-worker. Never edit or commit `.artifacts/`.
 
 ## Migration Operating Rules

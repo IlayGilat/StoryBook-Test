@@ -18,4 +18,7 @@ These rules bind every migration stage and worker.
 - Discover the rendered tree top-down from the benchmark root; create and adapt nodes bottom-up in strict post-order. Never bulk-copy a raw tree for later conversion.
 - Run `npm run generate:component <name>` exactly once per migration and only for the top-level benchmark target. Never generate child components separately.
 - Classify source dependencies as presentation, data, application control, or environment dependencies. Preserve presentation dependencies; convert data to inputs, control effects to outputs or harness actions, and environment state to controlled values.
+- Preserve nested smart components when their application dependencies can be satisfied internally; do not flatten them or expose unnecessary child contracts as public benchmark inputs.
+- Reuse an existing migrated shared component only when it preserves visual and behavioral fidelity completely; otherwise copy and adapt the required source variant.
+- Concurrent workers may write only to completely disjoint scopes. Never allow simultaneous edits to the same file or `state.json`; the main agent coordinates and integrates all writes.
 - If required source material is missing, record the missing input, mark the stage blocked, and stop without inventing behavior or data structures.
