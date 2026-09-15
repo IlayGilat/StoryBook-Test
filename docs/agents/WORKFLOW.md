@@ -10,9 +10,9 @@ Run one stage at a time. Replace `<component>` with the kebab-case benchmark roo
 | 4 | `Use the Component Scaffold Agent for <component>.` | Approved plan and file plan | One `npm run generate:component <component>` invocation for the root only; scaffold handoff |
 | 5 | `Use the Component Tree Migration Agent for <component>.` | Scaffold plus tree and plan | UI nodes adapted in strict post-order, node validation evidence, tree-migration handoff |
 | 6 | `Use the Data Agent for <component>.` | Data contract and migrated UI bindings | TypeScript types, Zod schema, deterministic data factory, data handoff |
-| 7 | `Use the Harness Agent for <component>.` | Validated UI and data layer | Container extending `BaseBenchmarkContainerComponent<T>`, CSF3 story variants, harness handoff |
+| 7 | `Use the Harness Agent for <component>.` | Validated UI and data layer | Container extending `BaseBenchmarkContainerComponent<T>`, CSF3 story variants whose measured `play` interactions call `window.__storybookPerfTracker.runInteraction(...)`, harness handoff |
 | 8 | `Use the Benchmark Integration Agent for <component>.` | Completed harness and story | Registry, performance-tracker, paint-cycle, sizing-event, and benchmark-configuration verification; benchmark-integration handoff |
-| 9 | `Use the Test Agent for <component>.` | Runnable Storybook target | Interaction/scenario helpers, Playwright spec, test handoff |
+| 9 | `Use the Test Agent for <component>.` | Runnable Storybook target and registered measured interactions | Interaction/scenario helpers that consume tracked story interactions, Playwright spec, test handoff |
 | 10 | `Use the Fidelity Validation Agent for <component>.` | Legacy baseline and migrated story | `validation/parity-report.json`, `validation/fidelity-summary.md`, evidence paths, fidelity handoff |
 | 11 | `Use the Repair Agent for <component> to resolve <reported issue>.` | A concrete failed validation or Critical/Major parity finding | Targeted repair, revalidation evidence, repair handoff |
 

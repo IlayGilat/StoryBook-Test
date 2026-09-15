@@ -11,12 +11,12 @@ Use during the Harness stage after the container and deterministic data are read
 
 ## Inputs
 
-- Harness component, required data-volume variants, and existing `src/components/*/harness/*.stories.ts` examples.
+- Harness component, required data-volume variants, measured interaction names, and existing `src/components/*/harness/*.stories.ts` examples.
 
 ## Outputs
 
 - `src/components/<component>/harness/<component>.stories.ts`.
-- Storybook render validation evidence for the Harness handoff.
+- Storybook render and measured `play` interaction evidence for the Harness handoff.
 
 ## Procedure
 
@@ -24,15 +24,17 @@ Use during the Harness stage after the container and deterministic data are read
 2. Set `parameters: { layout: 'fullscreen' }` and deterministic default args, including dataset size when exposed.
 3. Register only necessary presentation providers/decorators.
 4. Define required stories/states without duplicating application services.
-5. Build/open each story and verify readiness and console cleanliness.
-6. Leave registry, performance-tracker, paint-cycle, sizing-event, and benchmark-configuration integration verification to Benchmark Integration.
+5. Wrap every measured CSF3 `play` interaction in `window.__storybookPerfTracker.runInteraction(...)`; unmeasured setup may remain outside the wrapper.
+6. Build/open each story and verify readiness, console cleanliness, and measured interaction completion.
+7. Leave tracker wiring/registration plus registry, paint-cycle, sizing-event, and benchmark-configuration verification to Benchmark Integration; Test consumes the tracked interactions.
 
 ## Constraints
 
 - Do not target the dumb UI component directly for benchmark stories.
+- Do not bypass the global tracker for a measured `play` interaction or duplicate tracker registration in the story.
 - Do not use nondeterministic loaders, network calls, arbitrary delays, or app-wide decorators.
 - Do not change unrelated stories.
 
 ## Stop conditions
 
-Stop when Storybook builds and every required fullscreen harness variant renders cleanly and reaches ready state.
+Stop when Storybook builds, every required fullscreen harness variant renders cleanly and reaches ready state, and every measured `play` interaction calls the global tracker.
