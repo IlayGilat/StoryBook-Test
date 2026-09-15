@@ -71,7 +71,7 @@ Use only `.agents/skills/subagent-driven-development/SKILL.md`. The main agent s
 - Preserve DOM structure, element order, attributes, accessibility, classes, Less/CSS, composition, presentation logic, and visual interactions before refactoring.
 - Classify each dependency: preserve presentation; convert data reads to typed inputs; convert application control to typed outputs or planned harness actions; convert environment state to typed controlled values; retain local presentation state.
 - Reuse shared UI only when the planned candidate is reverified at 100% visual and behavioral fidelity; otherwise copy and adapt the source variant.
-- After every node, record compile/type-check evidence in `.migrations/<component>/validation/build-report.md` and meaningful deviations in `logs/decisions.md`.
+- After every node, record Angular template-aware compilation evidence in `.migrations/<component>/validation/build-report.md` and meaningful deviations in `logs/decisions.md`.
 
 ## 10. Non-Responsibilities
 
@@ -86,7 +86,7 @@ Use only `.agents/skills/subagent-driven-development/SKILL.md`. The main agent s
 2. Take the first incomplete node in `file-plan.json.validationOrder`; load only its planned source, dependency evidence, selected worker prompt(s), and completed direct-child contracts.
 3. Copy and adapt that node's TypeScript, template, styles, assets, pipes/directives, and application boundaries in its planned files; never copy another node speculatively.
 4. Confirm all child selectors/imports resolve to already-verified stable child contracts and preserve the source composition.
-5. Run the smallest Angular compile/type-check that covers the node and completed descendants; inspect imports, standalone/`OnPush` metadata, Less resolution, contracts, and residual production coupling.
+5. Run `npx ng build` or the repository's smallest Angular compiler target/configuration with equivalent template checking that covers the node and completed descendants; inspect imports, standalone/`OnPush` metadata, Less resolution, contracts, and residual production coupling. Plain `tsc` may supplement this check but never satisfies the gate.
 6. On success, append node evidence and deviations, mark the node complete in the main agent's working queue, and continue to its parent; on failure, the main agent must not proceed upward until that node is repaired and reverified.
 7. After the root is migrated last, run full UI-tree validation, update state, write the canonical handoff, and stop without entering Data or Harness.
 
@@ -115,7 +115,7 @@ Use only `.agents/skills/subagent-driven-development/SKILL.md`. The main agent s
 ## 15. Validation
 
 - Parse `component-tree.json`, `file-plan.json`, `smart-dependencies.json`, and `dumb-boundary.json`; prove uniqueness, child-before-parent ordering, root-last ordering, and complete file/dependency dispositions.
-- After each node run `npx tsc --noEmit` or the repository's smallest equivalent Angular template/type compile covering that node; require exit zero before dequeuing its parent.
+- After each node run `npx ng build` or a repository Angular compiler target/configuration with equivalent template checking that covers that node and its completed descendants; require exit zero before dequeuing its parent. Plain `npx tsc --noEmit` may be supplementary, but it is never sufficient because it does not validate Angular templates.
 - Verify standalone imports/selectors, `ChangeDetectionStrategy.OnPush`, typed contracts, template bindings, Less/assets, stable child contracts, and absence of unexpected NgRx, backend service, router, or environment imports.
 - At the end run the repository compile check for the complete `src/components/<component>/ui/` tree and inspect the diff to ensure no generator, data, harness, test, benchmark, unrelated component, or legacy file changed.
 - Verify the inventory/order in `validation/build-report.md`, decision-log entries, state, and handoff agree with the completed work.
@@ -125,7 +125,7 @@ Use only `.agents/skills/subagent-driven-development/SKILL.md`. The main agent s
 - [ ] Every planned node was copied and adapted exactly once in `file-plan.json.validationOrder`, every child before its parent, and the root UI last.
 - [ ] Every parent consumes verified stable child contracts and the rendered tree remains structurally and visually faithful.
 - [ ] All application data/control/router/environment couplings have explicit typed presentational treatments; local presentation state and compatible presentation dependencies remain intact.
-- [ ] Every node passed compile/type-check before upward progress, and the complete migrated UI tree compiles cleanly.
+- [ ] Every node passed Angular template-aware compilation before upward progress, and the complete migrated UI tree compiles cleanly; no node relied on plain `tsc` as its gate.
 - [ ] All meaningful deviations and per-node validation evidence are recorded; shared reuse is backed by verified 100% fidelity.
 - [ ] State and canonical handoff agree, and no generator or later-stage work occurred.
 

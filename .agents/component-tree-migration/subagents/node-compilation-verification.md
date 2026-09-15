@@ -12,7 +12,7 @@ Use after all edits for the current queue node are integrated; use again for the
 
 - Current node identifier, exact target files, and position in `file-plan.json.validationOrder`
 - Completed descendant/child contract evidence and applicable plan/boundary entries
-- Parent-provided smallest compile/type-check command and repository root
+- Parent-provided `npx ng build` command or repository Angular compiler target/configuration with equivalent template checking, plus the repository root
 
 ## 4. Outputs
 
@@ -20,7 +20,7 @@ Use after all edits for the current queue node are integrated; use again for the
 
 ## 5. Allowed Scope
 
-Read current node, completed descendants, plans, and compiler output; run non-mutating compile/search checks only.
+Read current node, completed descendants, plans, and compiler output; run non-mutating Angular template-aware compile/search checks only.
 
 ## 6. Forbidden Scope
 
@@ -29,13 +29,13 @@ Any file edit, repair, error suppression, ancestor validation before node succes
 ## 7. Procedure
 
 1. Confirm the node is the next queue entry and every direct child has prior passing evidence and a stable consumed contract.
-2. Run the smallest Angular template/TypeScript compile covering the node and completed descendants; capture exact output and exit code.
+2. Run `npx ng build` or the smallest repository Angular compiler target/configuration with equivalent template checking that covers the node and completed descendants; capture exact output and exit code. Plain `tsc` may run as a supplementary type check but never as the node gate.
 3. Inspect standalone imports/selectors, `OnPush`, typed inputs/outputs, template members, Less/assets, and planned dependency treatments.
 4. Search for unexplained NgRx, backend service, router, environment, HTTP, `any`, placeholders, or suppressed errors.
 
 ## 8. Checks & Verification
 
-Require zero compile exit, resolved child imports/selectors, exact contract agreement, complete file-plan disposition, and no unexpected production coupling. Never convert failure into warning.
+Require zero exit from Angular template-aware compilation, resolved child imports/selectors, exact contract agreement, complete file-plan disposition, and no unexpected production coupling. A plain `tsc` success is never sufficient; never convert failure into warning.
 
 ## 9. Return Condition
 

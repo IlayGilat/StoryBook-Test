@@ -89,3 +89,44 @@ Inspected the scoped status/diff for Task 4. Task 4 creates only the component-t
 ## Concerns
 
 None.
+
+## Fix Round 1
+
+### Finding Addressed
+
+Replaced the permissive plain-`tsc` per-node gate with mandatory Angular template-aware compilation. The main agent and `node-compilation-verification` worker now require `npx ng build` or a repository Angular compiler target/configuration with equivalent template checking after every node. Plain `tsc` is explicitly supplementary and never sufficient. Upward progress remains blocked on any failed node gate.
+
+### Files Changed
+
+- `.agents/component-tree-migration/AGENT.md`
+- `.agents/component-tree-migration/subagents/node-compilation-verification.md`
+- `.superpowers/sdd/prompt.txt/task-4-report.md`
+
+### Validation Command
+
+Ran a focused PowerShell assertion over `.agents/component-tree-migration/` to verify the mandatory Angular build command/equivalent template compiler, rejection of plain `tsc` as a sufficient gate, upward blocking, exact 17/9 section counts, canonical paths, and Markdown heading spacing; the command also ran:
+
+```text
+git diff --check -- .agents/component-tree-migration
+```
+
+### Validation Result
+
+```text
+angularBuildMain=True
+equivalentTemplateCompiler=True
+plainTscSupplementaryOnly=True
+verifierAngularBuild=True
+verifierRejectsPlainTsc=True
+upwardBlock=True
+mainSections=True
+workerSections=True
+exactPaths=True
+markdownHeadingSpacing=True
+```
+
+`git diff --check` passed with no whitespace errors. The only emitted messages were Git's informational LF-to-CRLF working-copy warnings.
+
+### Concerns
+
+None.
