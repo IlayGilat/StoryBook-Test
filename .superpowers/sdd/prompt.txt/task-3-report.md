@@ -97,3 +97,27 @@ All 22 worker prompts use the exact Module 02 9-section heading order and define
 ## Concerns
 
 None.
+
+## Fix Round 1
+
+### Finding Addressed
+
+Made all three Module 04 Project Bootstrap validations mandatory in both the main-agent contract and the Storybook verification worker:
+
+- Angular compile/build: `npm run build` when the script exists, otherwise `npx ng build`.
+- Static Storybook build: `npm run build-storybook`.
+- Development Storybook health: launch `npm run storybook` as a captured child process, poll `http://localhost:6006` for no more than 60 seconds, require healthy HTTP, inspect server/browser console evidence for missing assets/styles/modules and unhandled errors, and always terminate and verify the spawned process tree in a guaranteed-cleanup path.
+
+The main DoD now explicitly requires all three checks and teardown. Failure, timeout, unavailable console evidence, or an orphaned process cannot be reported as success. The canonical project-bootstrap handoff and `npm run build-storybook` ruling remain unchanged.
+
+### Focused Validation
+
+- Exact-section check: Project Bootstrap main remains in ordered sections `1..17`; its verification worker remains in ordered sections `1..9`.
+- Required-command/behavior check found both Angular command branches, `npm run build-storybook`, `npm run storybook`, the fixed health URL, the 60-second bound, server/browser console inspection, and guaranteed process-tree teardown.
+- Optionality check confirmed the development-server validation is no longer described as optional.
+- `rg -n 'build:storybook|[ \\t]+$'` over the two amended prompts returned no forbidden command or trailing whitespace.
+- Markdown heading-spacing check passed for both amended prompts.
+
+### Fix Round Concerns
+
+None.

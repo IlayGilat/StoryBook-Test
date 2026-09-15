@@ -90,15 +90,17 @@ Use only `.agents/skills/subagent-driven-development/SKILL.md`. Select the minim
 
 ## 15. Validation
 
-- Run `npm run build-storybook` and require a zero exit code with no missing module, Less, font, or asset errors.
-- When dependency or Angular configuration changed, also run the repository's available Angular compile check (`npm run build` or `npx ng build`).
-- For an optional dev-server check, run `npm run storybook` only long enough to verify startup and asset resolution, then stop it.
+- Run the Angular compile/build check for every bootstrap: use `npm run build` when that script is defined, otherwise run `npx ng build`; require a zero exit code and no TypeScript or Less errors.
+- Run `npm run build-storybook`; require a zero exit code and no missing module, style, font, or asset errors.
+- Run a bounded Storybook development health check: launch `npm run storybook` as a captured child process, poll `http://localhost:6006` for at most 60 seconds, require a successful HTTP response, and inspect server/browser console output for missing assets, styles, modules, or unhandled errors. Always terminate the spawned process tree in a `finally`/guaranteed-cleanup path on success, failure, or timeout; never leave an indefinite server running.
 
 ## 16. Definition of Done (DoD)
 
 - [ ] Required presentational dependencies are compatible and installed; no forbidden application coupling was added.
 - [ ] Required global tokens, styles, fonts, and assets resolve in Storybook.
+- [ ] The mandatory Angular compile/build check (`npm run build` when defined, otherwise `npx ng build`) passes.
 - [ ] `npm run build-storybook` passes.
+- [ ] The bounded `npm run storybook` startup reaches healthy HTTP within 60 seconds, console inspection finds no missing asset/style/module or unhandled errors, and the spawned process tree is terminated.
 - [ ] State, decisions, and `.migrations/<component>/handoffs/project-bootstrap.md` are complete and mutually consistent.
 - [ ] No benchmark component was migrated.
 
