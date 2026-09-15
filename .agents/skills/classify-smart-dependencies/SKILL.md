@@ -11,12 +11,12 @@ Use after dependency extraction during Source Analysis or Planning, and when a n
 
 ## Inputs
 
-- `dependencies.json`, `component-tree.json`, and relevant read-only usage sites.
-- Existing `dumb-boundary.json`, if planning has begun.
+- `analysis/dependencies.json`, `analysis/component-tree.json`, and relevant read-only usage sites.
+- Existing `plan/dumb-boundary.json`, if planning has begun.
 
 ## Outputs
 
-- `smart-dependencies.json` entries with category, usage, conversion, and owner.
+- `analysis/smart-dependencies.json` entries with category, usage, conversion, and owner.
 - Boundary questions or blockers for planning.
 
 ## Procedure

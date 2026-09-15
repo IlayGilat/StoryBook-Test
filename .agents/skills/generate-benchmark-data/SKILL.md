@@ -7,11 +7,11 @@ description: Implement deterministic, Zod-validated benchmark data using the rep
 
 ## When to use
 
-Use in the Data stage after `data-contract.json` is approved and the migrated UI contract is stable.
+Use in the Data stage after `plan/data-contract.json` is approved and the migrated UI contract is stable.
 
 ## Inputs
 
-- `data-contract.json`, planned files, and repository patterns under `src/benchmark/data-generator/` and `src/components/*/data/`.
+- `.migrations/<component>/plan/data-contract.json`, planned files, and repository patterns under `src/benchmark/data-generator/` and `src/components/*/data/`.
 
 ## Outputs
 

@@ -17,9 +17,18 @@ Fidelity means the migrated story preserves the legacy component's visible resul
 - **Minor**: small non-functional pixel/style variance with localized impact. Record and triage.
 - **Accepted**: a measured deviation approved and documented in `logs/decisions.md`; retain evidence and rationale.
 
-## Image thresholds
+## Image policy
 
-Use a per-channel pixel tolerance of `0.1` and fail when differing pixels exceed `0.2%` of the image. Treat these as triage gates, not permission to ignore clustered defects: any coherent visible region, text shift, missing element, or interaction-state mismatch is reviewed and severity-classified even below the percentage threshold. Font or platform instability must be normalized at capture time, not hidden by broadening tolerance.
+Use Playwright screenshot assertions with `threshold: 0.1` and `maxDiffPixelRatio: 0.002`. In Playwright, `threshold` is the comparator's normalized perceived-color difference limit in the `0` to `1` range; it is not a raw per-channel delta. `maxDiffPixelRatio` permits at most `0.2%` of image pixels to differ. Keep Playwright's comparator behavior for alpha blending and antialiasing; do not pre-strip alpha, mask ordinary edge pixels, or apply a second custom channel metric.
+
+These values are the initial repository policy and must be calibrated against approved stable baselines; they are not universal fidelity truth. Calibration requires recorded evidence and an explicit policy change, never an ad hoc per-test relaxation. Treat the assertion as a triage gate: any coherent visible region, text shift, missing element, or interaction-state mismatch is reviewed and severity-classified even when the pixel ratio passes.
+
+```ts
+await expect(page).toHaveScreenshot({
+  threshold: 0.1,
+  maxDiffPixelRatio: 0.002,
+});
+```
 
 ## Legacy baseline capture
 
@@ -27,7 +36,7 @@ Use a per-channel pixel tolerance of `0.1` and fail when differing pixels exceed
 2. Record commit/build identity, route, viewport, device scale, browser, theme, locale, timezone, fonts, dataset fixture, and steps.
 3. Wait for application readiness and stable fonts/images; disable animations only when the same rule is applied to both sides.
 4. Capture full and component-bounded screenshots plus DOM/style/interaction evidence for each required state.
-5. Store evidence outside the legacy source and reference it from `.migrations/<component>/parity-report.json`.
+5. Store evidence outside the legacy source and reference it from `.migrations/<component>/validation/parity-report.json`.
 6. Repeat the identical protocol against Storybook and classify every material deviation.
 
 Never refactor merely to improve a diff. Repair the smallest fidelity gap and re-run only the affected comparison plus required regression checks.

@@ -36,4 +36,4 @@ Use only when a prior stage reports a reproducible failure or Fidelity Validatio
 
 ## Stop conditions
 
-Stop when the exact failure and required regressions pass with evidence, or when three scoped attempts cannot progress and the repair is recorded blocked with the unresolved cause.
+Stop when the exact failure and required regressions pass with evidence. Block when required evidence or a prerequisite is missing, or when no safe targeted repair can be identified from the available evidence; record the unresolved cause.

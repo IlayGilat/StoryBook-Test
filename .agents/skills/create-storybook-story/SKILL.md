@@ -1,22 +1,22 @@
 ---
 name: create-storybook-story
-description: Create a Storybook 8 CSF3 story targeting a benchmark harness and using the shared performance tracker.
+description: Create Storybook 8 CSF3 variants for a benchmark harness during the Harness stage.
 ---
 
 # Create Storybook Story
 
 ## When to use
 
-Use during Benchmark Integration after the harness and component registry identity are ready.
+Use during the Harness stage after the container and deterministic data are ready.
 
 ## Inputs
 
-- Harness component, registry identity, interaction requirements, and existing `src/components/*/harness/*.stories.ts` examples.
+- Harness component, required data-volume variants, and existing `src/components/*/harness/*.stories.ts` examples.
 
 ## Outputs
 
 - `src/components/<component>/harness/<component>.stories.ts`.
-- Storybook render/interaction validation evidence.
+- Storybook render validation evidence for the Harness handoff.
 
 ## Procedure
 
@@ -24,8 +24,8 @@ Use during Benchmark Integration after the harness and component registry identi
 2. Set `parameters: { layout: 'fullscreen' }` and deterministic default args, including dataset size when exposed.
 3. Register only necessary presentation providers/decorators.
 4. Define required stories/states without duplicating application services.
-5. Route measured play interactions through `window.__storybookPerfTracker.runInteraction(...)` using the registered identity.
-6. Build/open the story, verify readiness, console cleanliness, and interaction completion.
+5. Build/open each story and verify readiness and console cleanliness.
+6. Leave registry, performance-tracker, paint-cycle, sizing-event, and benchmark-configuration integration verification to Benchmark Integration.
 
 ## Constraints
 
@@ -35,4 +35,4 @@ Use during Benchmark Integration after the harness and component registry identi
 
 ## Stop conditions
 
-Stop when Storybook builds, the fullscreen harness story reaches ready state, and all declared interactions complete through the tracker.
+Stop when Storybook builds and every required fullscreen harness variant renders cleanly and reaches ready state.

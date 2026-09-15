@@ -1,6 +1,6 @@
 # Migration Troubleshooting
 
-Diagnose the smallest failing scope, preserve the original error, apply a targeted repair, and re-run the failed check. Record commands and outcomes in `.migrations/<component>/logs/build-report.md`; meaningful deviations also go in `logs/decisions.md`.
+Diagnose the smallest failing scope, preserve the original error, apply a targeted repair, and re-run the failed check. Record commands and outcomes in `.migrations/<component>/validation/build-report.md`; meaningful deviations also go in `.migrations/<component>/logs/decisions.md`.
 
 ## TypeScript and Less
 

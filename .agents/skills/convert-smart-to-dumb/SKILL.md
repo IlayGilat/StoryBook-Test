@@ -12,7 +12,7 @@ Use during Component Tree Migration for a node whose classified data, control, r
 ## Inputs
 
 - Node source and target files.
-- `smart-dependencies.json`, `dumb-boundary.json`, data contract, and source behavior evidence.
+- `analysis/smart-dependencies.json`, `plan/dumb-boundary.json`, `plan/data-contract.json`, and source behavior evidence.
 
 ## Outputs
 

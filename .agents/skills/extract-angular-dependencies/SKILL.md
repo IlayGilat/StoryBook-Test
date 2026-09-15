@@ -11,8 +11,8 @@ Use during Source Analysis after a node is discovered and before dependency clas
 
 ## Inputs
 
-- Read-only source files for nodes listed in `component-tree.json`.
-- Target `.migrations/<component>/dependencies.json`.
+- Read-only source files for nodes listed in `analysis/component-tree.json`.
+- Target `.migrations/<component>/analysis/dependencies.json`.
 
 ## Outputs
 

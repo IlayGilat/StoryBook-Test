@@ -12,13 +12,13 @@ Use during Source Analysis or before migrating one tree node when its exact Angu
 ## Inputs
 
 - Read-only legacy component TypeScript path and associated template/style paths.
-- Node identifier in `.migrations/<component>/component-tree.json`.
+- Node identifier in `.migrations/<component>/analysis/component-tree.json`.
 - Existing dependency artifacts, if present.
 
 ## Outputs
 
-- Verified node metadata for `component-tree.json`.
-- Dependency observations for `dependencies.json` and `smart-dependencies.json`.
+- Verified node metadata for `analysis/component-tree.json`.
+- Dependency observations for `analysis/dependencies.json` and `analysis/smart-dependencies.json`.
 - No source or target UI changes.
 
 ## Procedure

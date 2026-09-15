@@ -11,12 +11,12 @@ Use during Migration Planning or Data work after template bindings and smart dep
 
 ## Inputs
 
-- `component-tree.json`, templates, TypeScript input types, `smart-dependencies.json`, and `dumb-boundary.json`.
-- `.migrations/<component>/data-contract.json` destination.
+- `analysis/component-tree.json`, templates, TypeScript input types, `analysis/smart-dependencies.json`, and `plan/dumb-boundary.json`.
+- `.migrations/<component>/plan/data-contract.json` destination.
 
 ## Outputs
 
-- Deterministic `data-contract.json` covering types, schemas, dataset shape, sizes, seed, and edge cases.
+- Deterministic `plan/data-contract.json` covering types, schemas, dataset shape, sizes, seed, and edge cases.
 - Identified TypeScript/Zod artifacts for the file plan.
 
 ## Procedure

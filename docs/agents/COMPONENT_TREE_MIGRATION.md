@@ -13,7 +13,7 @@ postOrder(node):
   migrateAndValidate(node)
 ```
 
-Use `component-tree.json` as the traversal source and `file-plan.json.validationOrder` as the executable sequence. Shared descendants appear once; detect selector cycles and block rather than guessing.
+Use `analysis/component-tree.json` as the traversal source and `plan/file-plan.json.validationOrder` as the executable sequence. Shared descendants appear once; detect selector cycles and block rather than guessing.
 
 ## Migrate one node
 
@@ -21,7 +21,7 @@ Use `component-tree.json` as the traversal source and `file-plan.json.validation
 2. **Template adapt:** keep semantic structure, element order, classes, bindings, accessibility, and child selectors. Change only paths/contracts required by the standalone target.
 3. **Style adapt:** preserve Less rules, cascade, token use, layout, and encapsulation. Resolve imports/assets deliberately; log meaningful deviations.
 4. **Dependency strip:** classify every dependency. Preserve presentation dependencies; convert data reads to `@Input()`, application-control effects to `@Output()` or harness actions, and environment state to controlled values. Keep satisfiable nested smart dependencies internal.
-5. **Node check:** compile the smallest target that includes the node, render its representative states, inspect for template/runtime errors, and record the result in `logs/build-report.md`.
+5. **Node check:** compile the smallest target that includes the node, render its representative states, inspect for template/runtime errors, and record the result in `validation/build-report.md`.
 
 Only after a node passes may its parent import or render it. If validation fails, repair that node before continuing; do not suppress errors or proceed upward.
 

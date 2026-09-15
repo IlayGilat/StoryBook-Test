@@ -17,6 +17,6 @@ Convert application coupling at the smallest faithful boundary. UI components re
 
 Do not flatten a nested smart component when its application dependencies can be satisfied internally without expanding the benchmark's public API. Expose root inputs/outputs only when the harness must control or observe them. Preserve presentation-only dependencies (pipes, directives, icon components, formatters) when compatible with the repository.
 
-For each conversion, update `smart-dependencies.json`, `dumb-boundary.json`, TypeScript types, template bindings, and `logs/decisions.md` when behavior or architecture meaningfully changes. Validate compile, render, and event semantics at the node before its parent is finalized.
+For each conversion, update `analysis/smart-dependencies.json`, `plan/dumb-boundary.json`, TypeScript types, template bindings, and `logs/decisions.md` when behavior or architecture meaningfully changes. Validate compile, render, and event semantics at the node before its parent is finalized.
 
 Forbidden shortcuts include `any` contracts, silent no-op service replacements, hard-coded production state, fabricated defaults, removed accessibility semantics, and broad refactors unrelated to the reported coupling.
