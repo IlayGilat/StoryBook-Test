@@ -40,3 +40,16 @@ DONE
 ## Concerns
 
 None.
+
+## Fix Round 1
+
+- Addressed the review finding that incorrectly made dataset volume a required upstream `data-contract.json` field.
+- Data now owns a deterministic default baseline of 10–50 items. An explicit contract-specific baseline count is used only when it is present and within that range; otherwise the Data stage chooses and documents a stable in-range count.
+- Updated `.agents/data/AGENT.md` and `.agents/data/subagents/default-dataset.md`; exact 17-section and 9-section ordering remains unchanged.
+
+### Validation
+
+- PowerShell section-order and inventory check: `SECTION_ORDER_OK files=26`; `INVENTORY mains=4 workers=22`.
+- `rg -n "expected volume|10–50|compatible baseline count|contract-approved small count" .agents/data prompts/08-stages-data-and-harness.md`: no stale `expected volume` or `contract-approved small count` language; all required 10–50-item rules are present.
+- `git diff --check -- .agents/data/AGENT.md .agents/data/subagents/default-dataset.md .superpowers/sdd/prompt.txt/task-5-report.md`: passed with no whitespace errors.
+- `git diff --name-only`: only the two Data prompt files and this Task 5 report are in the fix scope.
