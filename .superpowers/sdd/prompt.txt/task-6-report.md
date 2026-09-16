@@ -9,21 +9,21 @@ Implemented Phase 6 only: stage 10 (`fidelity-validation`) and stage 11 (`repair
 ## Files Created
 
 - `.agents/fidelity-validation/AGENT.md`
-- `.agents/fidelity-validation/workers/original-component-capture.md`
-- `.agents/fidelity-validation/workers/storybook-component-capture.md`
-- `.agents/fidelity-validation/workers/visual-parity.md`
-- `.agents/fidelity-validation/workers/dom-parity.md`
-- `.agents/fidelity-validation/workers/behavior-parity.md`
-- `.agents/fidelity-validation/workers/theme-parity.md`
+- `.agents/fidelity-validation/subagents/original-component-capture.md`
+- `.agents/fidelity-validation/subagents/storybook-component-capture.md`
+- `.agents/fidelity-validation/subagents/visual-parity.md`
+- `.agents/fidelity-validation/subagents/dom-parity.md`
+- `.agents/fidelity-validation/subagents/behavior-parity.md`
+- `.agents/fidelity-validation/subagents/theme-parity.md`
 - `.agents/repair/AGENT.md`
-- `.agents/repair/workers/build-repair.md`
-- `.agents/repair/workers/import-repair.md`
-- `.agents/repair/workers/ui-repair.md`
-- `.agents/repair/workers/styling-repair.md`
-- `.agents/repair/workers/data-repair.md`
-- `.agents/repair/workers/harness-repair.md`
-- `.agents/repair/workers/scenario-repair.md`
-- `.agents/repair/workers/fidelity-repair.md`
+- `.agents/repair/subagents/build-repair.md`
+- `.agents/repair/subagents/import-repair.md`
+- `.agents/repair/subagents/ui-repair.md`
+- `.agents/repair/subagents/styling-repair.md`
+- `.agents/repair/subagents/data-repair.md`
+- `.agents/repair/subagents/harness-repair.md`
+- `.agents/repair/subagents/scenario-repair.md`
+- `.agents/repair/subagents/fidelity-repair.md`
 
 ## Ledger Update
 
@@ -52,7 +52,7 @@ Task 5: complete (commits 89f0621..9a42258, review clean)
 
    ```powershell
    Get-ChildItem .agents\fidelity-validation,.agents\repair -Filter AGENT.md -File
-   Get-ChildItem .agents\fidelity-validation\workers,.agents\repair\workers -Filter *.md -File
+   Get-ChildItem .agents\fidelity-validation\subagents,.agents\repair\subagents -Filter *.md -File
    Select-String -Path <main> -Pattern '^## (\d+)\. '
    Select-String -Path <worker> -Pattern '^## (\d+)\. '
    ```
@@ -107,13 +107,13 @@ Focused validation command groups:
 
 ```powershell
 Get-ChildItem .agents\fidelity-validation,.agents\repair -Filter AGENT.md -File
-Get-ChildItem .agents\fidelity-validation\workers,.agents\repair\workers -Filter *.md -File
+Get-ChildItem .agents\fidelity-validation\subagents,.agents\repair\subagents -Filter *.md -File
 Select-String -Path <main> -Pattern '^## (\d+)\. '
 Select-String -Path <worker> -Pattern '^## (\d+)\. '
 Select-String -Path <phase-files> -Pattern '\bOPEN\b|\bRESOLVED\b' -CaseSensitive
 Select-String -Path <phase-files> -Pattern '\bACCEPTED\b' -CaseSensitive
 Select-String -Path .agents\repair\AGENT.md -Pattern 'exact report entry|diagnostic or command evidence|REP-<REPORT-SLUG>-<ENTRY-ORDINAL>|canonical lowercase `resolved`'
-Select-String -Path .agents\repair\workers\*.md -Pattern 'exact .*report.*entry|repair reference'
+Select-String -Path .agents\repair\subagents\*.md -Pattern 'exact .*report.*entry|repair reference'
 git diff --name-only -- src .migrations
 git diff --check
 ```
