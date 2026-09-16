@@ -1,0 +1,187 @@
+================================================================================
+MASTER PROMPT: STORYBOOK-TEST MIGRATION AGENT SYSTEM BUILDER
+================================================================================
+
+Target Implementer: GPT-5.6 Sol Medium / OpenCode Implementer (~100K token context window)
+Repository: StoryBook-Test
+Objective: Build a complete, context-efficient agent system for migrating legacy
+           Angular 16 components into StoryBook-Test for high-stress benchmarking.
+
+--------------------------------------------------------------------------------
+1. ARCHITECTURAL INVARIANT: CONTEXT EFFICIENCY
+--------------------------------------------------------------------------------
+
+The full system prompt has been divided into modular, self-contained files inside
+the `prompts/` directory to make implementation manageable, context-efficient, and
+resilient against token exhaustion.
+
+DO NOT load all prompt files at once.
+Instead, follow the Phased Execution Guide below, loading ONLY the files relevant
+to your current implementation phase.
+
+--------------------------------------------------------------------------------
+2. CORE NON-NEGOTIABLE INVARIANTS
+--------------------------------------------------------------------------------
+
+1. DISCOVER TOP-DOWN. IMPLEMENT BOTTOM-UP:
+   - Scanning happens from parent to child.
+   - Component creation and adaptation happens in strict POST-ORDER (leaf child first,
+     parent last). The top-level root UI component is migrated LAST.
+   - Adapt production boundaries (NgRx, services, router, env) during creation of
+     each node. Never copy an entire raw tree to dumbify later.
+
+2. TOP-LEVEL GENERATOR INVARIANT:
+   - The CLI command `npm run generate:component <name>` MUST be run ONLY ONCE per
+     migrated target, strictly for the TOP-LEVEL benchmark target.
+   - NEVER invoke the generator for child components under that tree. Child components
+     are copied and adapted directly into the UI tree.
+
+3. MANDATORY SUBAGENT DELEGATION SKILL:
+   - You MUST reference and use the repository's existing skill at:
+     `.agents/skills/subagent-driven-development/SKILL.md`
+   - Do NOT recreate, duplicate, or invent a competing delegation framework.
+
+4. SYSTEM ONLY (NO ACTUAL COMPONENT MIGRATION):
+   - Your deliverable is the agent system (.agents/, docs/agents/, skills, templates).
+   - Do NOT migrate an actual component during this task.
+
+5. LAZY CONTEXT LOADING:
+   - Keep global rules and root AGENTS.md tiny (500–1,500 tokens max).
+   - Every Main Agent must explicitly define Required, Optional, and Do Not Load context.
+
+--------------------------------------------------------------------------------
+3. MASTER INDEX OF PROMPT MODULES (prompts/)
+--------------------------------------------------------------------------------
+
+The complete system instructions are partitioned into the following modules:
+
+- prompts/00-overview-and-operating-model.md
+  High-level mission, sequential stage model, human-in-the-loop triggers,
+  subagent-driven-development integration, context constraints, token budgets,
+  operational prompt standards, and anti-explosion rules.
+
+- prompts/01-system-architecture-and-file-tree.md
+  StoryBook-Test stack characteristics, component layout (ui/, data/, harness/, test/),
+  full directory tree of .agents/ (11 main agents and 53 sub-agents), helper docs
+  list, migration skills list, and .migrations/<component>/ workspace layout.
+
+- prompts/02-contracts-state-and-templates.md
+  Minimal root AGENTS.md specification, .agents/shared/core-rules.md (10 durable rules),
+  state.json schema, handoffs/<stage>.md contract, and standard 17-section Main Agent
+  and 9-section Sub-Agent templates.
+
+- prompts/03-migration-invariants-and-principles.md
+  Generator rules, Top-Down Discovery vs. Bottom-Up Creation invariant, post-order
+  traversal, dependency classification (Presentation, Data, App Control, Environment),
+  nested smart component rule, shared component reuse, validation checkpoints,
+  decision logging, and concurrency/write isolation.
+
+- prompts/04-stage-project-bootstrap.md
+  Stage 01 Main Agent specification and 6 sub-agents (dependency-sync, theme-migration,
+  global-styles-migration, shared-assets-migration, shared-ui-migration,
+  storybook-build-verification).
+
+- prompts/05-stage-source-analysis.md
+  Stage 02 Main Agent specification (read-only) and 8 sub-agents (component-tree,
+  smart-dependency, child-component, ngrx, service, input-output, style, shared).
+
+- prompts/06-stages-planning-and-scaffold.md
+  Stage 03 Migration Planning (5 sub-agents) and Stage 04 Component Scaffold (generator
+  runner, folder structure verifier, benchmark registry verifier).
+
+- prompts/07-stage-component-tree-migration.md
+  Stage 05 Component Tree Migration Main Agent (core engine) and 13 sub-agents
+  enforcing post-order child-to-parent execution, boundary adaptation recipes, and
+  node-level compilation loops.
+
+- prompts/08-stages-data-and-harness.md
+  Stage 06 Data Main Agent (Zod schemas, deterministic factories, stress datasets)
+  and Stage 07 Harness Main Agent (BaseBenchmarkContainerComponent, double rAF paint,
+  sizing events, Storybook stories).
+
+- prompts/09-stages-benchmark-and-test.md
+  Stage 08 Benchmark Integration Main Agent (registry, perf-tracker, paint cycle)
+  and Stage 09 Test Main Agent (Playwright specs, interaction/stress scenarios,
+  CDP metrics, runtime errors).
+
+- prompts/10-stages-fidelity-and-repair.md
+  Stage 10 Fidelity Validation Main Agent (visual/DOM/behavior/theme parity, deviation
+  classification) and Stage 11 Repair Main Agent (targeted surgical repairs tied to
+  explicit failure reports).
+
+- prompts/11-skills-and-helper-docs.md
+  Specifications for 6 helper documents in docs/agents/ (WORKFLOW, MIGRATION_ARTIFACTS,
+  FIDELITY, COMPONENT_TREE_MIGRATION, COMPONENT_BOUNDARIES, TROUBLESHOOTING) and 13
+  reusable migration skills under .agents/skills/.
+
+- prompts/12-implementation-steps-and-verification.md
+  Repository inspection checklist before generation, phased implementation strategy,
+  final deliverables catalog, and the complete 19-point verification checklist.
+
+--------------------------------------------------------------------------------
+4. PHASED EXECUTION GUIDE FOR THE IMPLEMENTER LLM
+--------------------------------------------------------------------------------
+
+Execute the build in the following order. In each phase, load ONLY the specified files:
+
+PHASE 1: Foundations, Shared Contracts & Architecture
+  Read:
+    - prompts/00-overview-and-operating-model.md
+    - prompts/01-system-architecture-and-file-tree.md
+    - prompts/02-contracts-state-and-templates.md
+    - prompts/03-migration-invariants-and-principles.md
+  Actions:
+    - Create minimal root AGENTS.md
+    - Create .agents/README.md
+    - Create .agents/shared/core-rules.md
+    - Create .agents/shared/handoff-contract.md
+    - Create .agents/shared/state-schema.md
+
+PHASE 2: Helper Documentation & Reusable Skills
+  Read:
+    - prompts/11-skills-and-helper-docs.md
+  Actions:
+    - Create 6 docs under docs/agents/
+    - Create 13 reusable skills under .agents/skills/
+
+PHASE 3: Stages 01 to 04 (Bootstrap, Analysis, Planning, Scaffold)
+  Read:
+    - prompts/04-stage-project-bootstrap.md
+    - prompts/05-stage-source-analysis.md
+    - prompts/06-stages-planning-and-scaffold.md
+  Actions:
+    - Create .agents/project-bootstrap/ (AGENT.md + 6 sub-agents)
+    - Create .agents/source-analysis/ (AGENT.md + 8 sub-agents)
+    - Create .agents/migration-planning/ (AGENT.md + 5 sub-agents)
+    - Create .agents/component-scaffold/ (AGENT.md + 3 sub-agents)
+
+PHASE 4: Stage 05 (Component Tree Migration Core Engine)
+  Read:
+    - prompts/07-stage-component-tree-migration.md
+  Actions:
+    - Create .agents/component-tree-migration/ (AGENT.md + 13 sub-agents)
+
+PHASE 5: Stages 06 to 09 (Data, Harness, Benchmark Integration, Test)
+  Read:
+    - prompts/08-stages-data-and-harness.md
+    - prompts/09-stages-benchmark-and-test.md
+  Actions:
+    - Create .agents/data/ (AGENT.md + 6 sub-agents)
+    - Create .agents/harness/ (AGENT.md + 6 sub-agents)
+    - Create .agents/benchmark-integration/ (AGENT.md + 5 sub-agents)
+    - Create .agents/test/ (AGENT.md + 5 sub-agents)
+
+PHASE 6: Stages 10 & 11 (Fidelity Validation & Repair)
+  Read:
+    - prompts/10-stages-fidelity-and-repair.md
+  Actions:
+    - Create .agents/fidelity-validation/ (AGENT.md + 6 sub-agents)
+    - Create .agents/repair/ (AGENT.md + 8 sub-agents)
+
+PHASE 7: Verification & Final Report
+  Read:
+    - prompts/12-implementation-steps-and-verification.md
+  Actions:
+    - Run the complete 19-point verification checklist.
+    - Output final implementation summary.
+================================================================================

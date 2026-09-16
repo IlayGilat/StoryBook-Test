@@ -1,0 +1,914 @@
+From 8b27cbbc7475caf937144ff55210adac4a101cce Mon Sep 17 00:00:00 2001
+From: GILAT ILAY <ILAYGIL@rafael.co.il>
+Date: Tue, 15 Sep 2026 16:44:58 +0300
+Subject: [PATCH] docs: add component tree migration agent
+
+---
+ .agents/component-tree-migration/AGENT.md     | 134 ++++++++++++++++++
+ .../subagents/child-component-migration.md    |  43 ++++++
+ .../subagents/component-logic-migration.md    |  43 ++++++
+ .../subagents/environment-adaptation.md       |  43 ++++++
+ .../subagents/input-output-adaptation.md      |  43 ++++++
+ .../subagents/local-state-adaptation.md       |  43 ++++++
+ .../subagents/ngrx-adaptation.md              |  43 ++++++
+ .../node-compilation-verification.md          |  42 ++++++
+ .../subagents/pipe-directive-migration.md     |  43 ++++++
+ .../subagents/router-adaptation.md            |  43 ++++++
+ .../subagents/service-adaptation.md           |  43 ++++++
+ .../subagents/side-effect-adaptation.md       |  43 ++++++
+ .../subagents/style-migration.md              |  43 ++++++
+ .../subagents/template-migration.md           |  43 ++++++
+ .superpowers/sdd/prompt.txt/task-4-report.md  |  91 ++++++++++++
+ 15 files changed, 783 insertions(+)
+ create mode 100644 .agents/component-tree-migration/AGENT.md
+ create mode 100644 .agents/component-tree-migration/subagents/child-component-migration.md
+ create mode 100644 .agents/component-tree-migration/subagents/component-logic-migration.md
+ create mode 100644 .agents/component-tree-migration/subagents/environment-adaptation.md
+ create mode 100644 .agents/component-tree-migration/subagents/input-output-adaptation.md
+ create mode 100644 .agents/component-tree-migration/subagents/local-state-adaptation.md
+ create mode 100644 .agents/component-tree-migration/subagents/ngrx-adaptation.md
+ create mode 100644 .agents/component-tree-migration/subagents/node-compilation-verification.md
+ create mode 100644 .agents/component-tree-migration/subagents/pipe-directive-migration.md
+ create mode 100644 .agents/component-tree-migration/subagents/router-adaptation.md
+ create mode 100644 .agents/component-tree-migration/subagents/service-adaptation.md
+ create mode 100644 .agents/component-tree-migration/subagents/side-effect-adaptation.md
+ create mode 100644 .agents/component-tree-migration/subagents/style-migration.md
+ create mode 100644 .agents/component-tree-migration/subagents/template-migration.md
+ create mode 100644 .superpowers/sdd/prompt.txt/task-4-report.md
+
+diff --git a/.agents/component-tree-migration/AGENT.md b/.agents/component-tree-migration/AGENT.md
+new file mode 100644
+index 0000000..1753a13
+--- /dev/null
++++ b/.agents/component-tree-migration/AGENT.md
+@@ -0,0 +1,134 @@
++# Component Tree Migration Main Agent
++
++## 1. Purpose
++
++Migrate the planned Angular UI tree one node at a time in the exact strict post-order declared by `plan/file-plan.json`, adapting application coupling into stable presentational contracts while preserving rendered fidelity. Discover top-down; implement bottom-up; migrate the scaffolded root UI last.
++
++## 2. When to Invoke
++
++Invoke only after Component Scaffold completed successfully and the planned root scaffold, component-tree analysis, migration plan, and executable file plan all exist for the same component.
++
++## 3. Required Context
++
++- `.agents/shared/core-rules.md`
++- `.agents/shared/handoff-contract.md`
++- `.agents/shared/state-schema.md`
++- `.agents/skills/subagent-driven-development/SKILL.md`
++- `.agents/component-tree-migration/AGENT.md`
++- `.migrations/<component>/state.json`
++- `.migrations/<component>/handoffs/component-scaffold.md`
++- `.migrations/<component>/plan/migration-plan.md`
++- `.migrations/<component>/plan/file-plan.json`
++- `.migrations/<component>/plan/dumb-boundary.json`
++- `.migrations/<component>/analysis/component-tree.json`
++- `.migrations/<component>/analysis/smart-dependencies.json`
++- Only the current node's planned legacy files, directly referenced types/presentation dependencies, and already-migrated direct-child contracts
++
++## 4. Optional Context
++
++- `docs/agents/COMPONENT_TREE_MIGRATION.md` for traversal or isolation edge cases
++- `docs/agents/COMPONENT_BOUNDARIES.md` for an unresolved application-boundary classification
++- Relevant existing shared UI only for a planned, concrete reuse decision
++
++## 5. Do Not Load by Default
++
++- Other stage agents, future-stage prompts/artifacts, unselected worker prompts, or historical handoffs
++- The whole legacy repository, raw source outside the current node and its direct dependency evidence, unrelated components, tests, or `.artifacts/`
++- Data, harness, Storybook, benchmark-integration, Playwright, or fidelity implementation context
++
++## 6. Required Prior Artifacts
++
++- A `COMPLETED` `.migrations/<component>/handoffs/component-scaffold.md`
++- Valid `analysis/component-tree.json` and `analysis/smart-dependencies.json`
++- `plan/migration-plan.md`, `plan/dumb-boundary.json`, and a parseable `plan/file-plan.json` whose `validationOrder` contains every planned node exactly once, places every child before its parent, and places the root UI last
++- The scaffolded `src/components/<component>/ui/<component>.component.{ts,html,less}`
++
++## 7. Sub-Agents Available
++
++- `template-migration`
++- `component-logic-migration`
++- `child-component-migration`
++- `input-output-adaptation`
++- `ngrx-adaptation`
++- `service-adaptation`
++- `router-adaptation`
++- `environment-adaptation`
++- `local-state-adaptation`
++- `side-effect-adaptation`
++- `pipe-directive-migration`
++- `style-migration`
++- `node-compilation-verification`
++
++## 8. Subagent Delegation Workflow
++
++Use only `.agents/skills/subagent-driven-development/SKILL.md`. The main agent selects the minimum workers required by the current node's file-plan entries, gives each exact files and a disjoint write scope, integrates and reviews their result, then delegates `node-compilation-verification`. Never dispatch writers concurrently against the same node files; read-only checks may overlap only when independent. Workers never edit `state.json`, shared logs, the handoff, or files outside their assignment. The main agent alone owns ordering, integration, decisions, state, validation records, and handoff.
++
++## 9. Responsibilities
++
++- Preflight the prior handoff and prove `file-plan.json.validationOrder` is a deterministic strict post-order of the analyzed rendered tree, with shared descendants scheduled once and the root last; block on cycles or ambiguity.
++- Process exactly one queued node at a time: copy and adapt that node into its planned destination, never bulk-copy the raw tree for later conversion.
++- Before finalizing a parent, verify every planned direct child already exists, compiles, and exposes the stable contract the parent will consume.
++- Preserve DOM structure, element order, attributes, accessibility, classes, Less/CSS, composition, presentation logic, and visual interactions before refactoring.
++- Classify each dependency: preserve presentation; convert data reads to typed inputs; convert application control to typed outputs or planned harness actions; convert environment state to typed controlled values; retain local presentation state.
++- Reuse shared UI only when the planned candidate is reverified at 100% visual and behavioral fidelity; otherwise copy and adapt the source variant.
++- After every node, record compile/type-check evidence in `.migrations/<component>/validation/build-report.md` and meaningful deviations in `logs/decisions.md`.
++
++## 10. Non-Responsibilities
++
++- Running `npm run generate:component` for any target; generation belongs exclusively to Component Scaffold and is forbidden here.
++- Migrating data factories, harness containers, stories, benchmark integration, Playwright scenarios/tests, fidelity validation, or repairs owned by later stages.
++- Redesigning markup, flattening the tree, replacing migratable children with placeholders, fabricating contracts/defaults, or rewriting working presentation algorithms.
++- Editing production/legacy source or rediscovering architecture already settled by valid planning artifacts.
++
++## 11. Execution Flow
++
++1. Validate prerequisites, tree/file-plan agreement, exact post-order, root-last position, planned paths, and available source; set this stage active in state.
++2. Take the first incomplete node in `file-plan.json.validationOrder`; load only its planned source, dependency evidence, selected worker prompt(s), and completed direct-child contracts.
++3. Copy and adapt that node's TypeScript, template, styles, assets, pipes/directives, and application boundaries in its planned files; never copy another node speculatively.
++4. Confirm all child selectors/imports resolve to already-verified stable child contracts and preserve the source composition.
++5. Run the smallest Angular compile/type-check that covers the node and completed descendants; inspect imports, standalone/`OnPush` metadata, Less resolution, contracts, and residual production coupling.
++6. On success, append node evidence and deviations, mark the node complete in the main agent's working queue, and continue to its parent; on failure, the main agent must not proceed upward until that node is repaired and reverified.
++7. After the root is migrated last, run full UI-tree validation, update state, write the canonical handoff, and stop without entering Data or Harness.
++
++## 12. Allowed Modifications
++
++- Only file-plan-owned UI files under `src/components/<component>/ui/`, including planned child components, local presentation helpers, pipes/directives, styles, and copied assets
++- `.migrations/<component>/analysis/smart-dependencies.json` and `plan/dumb-boundary.json` only to reflect an evidence-backed boundary conversion discovered during this stage
++- `.migrations/<component>/logs/decisions.md`, `validation/build-report.md`, `state.json`, and `handoffs/component-tree-migration.md`
++
++## 13. Forbidden Modifications
++
++- Any external production/legacy source, generator script/template, package/configuration file, registry entry, or unrelated component
++- `src/components/<component>/{data,harness,test}/`, `src/benchmark/`, later-stage artifacts, and `.artifacts/`
++- Unplanned files, raw bulk tree copies, child benchmark roots, placeholder children, `any` boundary contracts, silent no-op replacements, hard-coded production state, or suppressed compile errors
++- Concurrent worker edits to the same file or any worker edit to shared state/log/handoff files
++
++## 14. Required Outputs
++
++- Every file-plan node adapted at its exact planned target under `src/components/<component>/ui/`, in recorded strict post-order with the scaffolded root UI last
++- Standalone `OnPush` components with explicit typed inputs/outputs/controlled values and preserved local presentation state
++- Updated `analysis/smart-dependencies.json` and `plan/dumb-boundary.json` when boundary evidence changed
++- `.migrations/<component>/logs/decisions.md` containing every meaningful architectural or behavioral deviation with reason, fidelity impact, and `Temporary` or `Accepted` status
++- `.migrations/<component>/validation/build-report.md` containing per-node command, result, verified child contracts, and final UI-tree validation
++- Updated state and `.migrations/<component>/handoffs/component-tree-migration.md`
++
++## 15. Validation
++
++- Parse `component-tree.json`, `file-plan.json`, `smart-dependencies.json`, and `dumb-boundary.json`; prove uniqueness, child-before-parent ordering, root-last ordering, and complete file/dependency dispositions.
++- After each node run `npx tsc --noEmit` or the repository's smallest equivalent Angular template/type compile covering that node; require exit zero before dequeuing its parent.
++- Verify standalone imports/selectors, `ChangeDetectionStrategy.OnPush`, typed contracts, template bindings, Less/assets, stable child contracts, and absence of unexpected NgRx, backend service, router, or environment imports.
++- At the end run the repository compile check for the complete `src/components/<component>/ui/` tree and inspect the diff to ensure no generator, data, harness, test, benchmark, unrelated component, or legacy file changed.
++- Verify the inventory/order in `validation/build-report.md`, decision-log entries, state, and handoff agree with the completed work.
++
++## 16. Definition of Done (DoD)
++
++- [ ] Every planned node was copied and adapted exactly once in `file-plan.json.validationOrder`, every child before its parent, and the root UI last.
++- [ ] Every parent consumes verified stable child contracts and the rendered tree remains structurally and visually faithful.
++- [ ] All application data/control/router/environment couplings have explicit typed presentational treatments; local presentation state and compatible presentation dependencies remain intact.
++- [ ] Every node passed compile/type-check before upward progress, and the complete migrated UI tree compiles cleanly.
++- [ ] All meaningful deviations and per-node validation evidence are recorded; shared reuse is backed by verified 100% fidelity.
++- [ ] State and canonical handoff agree, and no generator or later-stage work occurred.
++
++## 17. Handoff & Failure Behavior
++
++Write `.migrations/<component>/handoffs/component-tree-migration.md` in the exact shared handoff section order and recommend `data` without invoking it. Match handoff status/timestamp to state. A node compile failure is `FAILED`: capture the command/output and do not proceed to any ancestor. Missing source, assets, selector ownership, required child contract, contradictory order, or a cycle is `BLOCKED`: identify the exact missing/contradictory input and never invent behavior. Stop immediately after this stage's DoD.
+diff --git a/.agents/component-tree-migration/subagents/child-component-migration.md b/.agents/component-tree-migration/subagents/child-component-migration.md
+new file mode 100644
+index 0000000..85cf0ee
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/child-component-migration.md
+@@ -0,0 +1,43 @@
++# Child Component Migration Sub-Agent
++
++## 1. Goal
++
++Place and wire one assigned child node at its planned target without creating a benchmark root or allowing a parent to outrun child verification.
++
++## 2. When Parent Should Use It
++
++Use for a non-root queue entry or when a current parent needs verified child import/selector wiring.
++
++## 3. Inputs
++
++- Current node and relationship entries from `component-tree.json` and `file-plan.json`
++- Exact source/target paths and rendered selector evidence
++- Completed descendant contracts and their compilation evidence
++
++## 4. Outputs
++
++- Only assigned child placement/wiring edits
++- Return summary of descendants, selector/import mapping, target paths, and ordering proof
++
++## 5. Allowed Scope
++
++Write the exact file-plan paths assigned for this child node; read its source and completed descendants.
++
++## 6. Forbidden Scope
++
++Generator invocation, separate child benchmark roots, parent finalization, placeholders, speculative descendants, state/log/handoff, and files outside assignment.
++
++## 7. Procedure
++
++1. Confirm the child is next in `validationOrder` and all descendants already passed.
++2. Create/adapt only its planned files and preserve source composition.
++3. Wire verified descendant components through standalone imports and original selectors.
++4. Report the stable child contract the future parent may consume.
++
++## 8. Checks & Verification
++
++Verify planned path ownership, descendant-before-child evidence, selector uniqueness, and no generated benchmark suite or out-of-scope file appeared.
++
++## 9. Return Condition
++
++Return `COMPLETED` with ordering and wiring evidence; return `BLOCKED` for an unverified descendant, ambiguous selector, missing source, or conflicting target.
+diff --git a/.agents/component-tree-migration/subagents/component-logic-migration.md b/.agents/component-tree-migration/subagents/component-logic-migration.md
+new file mode 100644
+index 0000000..1d40018
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/component-logic-migration.md
+@@ -0,0 +1,43 @@
++# Component Logic Migration Sub-Agent
++
++## 1. Goal
++
++Adapt one node's TypeScript class and rendering logic into a standalone `OnPush` presentation component without changing working visual behavior.
++
++## 2. When Parent Should Use It
++
++Use when the current node has class, lifecycle, computed rendering, or event-handler logic to migrate.
++
++## 3. Inputs
++
++- Current node's file-plan entry and read-only legacy TypeScript
++- Planned target TypeScript, template contract, direct model/helper definitions, and verified child contracts
++- Applicable boundary treatment results supplied by the parent
++
++## 4. Outputs
++
++- The assigned target component TypeScript edit
++- Return summary of metadata, lifecycle/rendering logic preserved, dependencies applied, and risks
++
++## 5. Allowed Scope
++
++Write only the assigned node TypeScript file and node-local presentation helper explicitly assigned by the parent.
++
++## 6. Forbidden Scope
++
++Templates/styles/other nodes/shared state/logs/handoff, business-data invention, broad refactors, network/store access, and `any` contracts.
++
++## 7. Procedure
++
++1. Preserve selectors, rendering calculations, lifecycle timing, and presentation handlers.
++2. Make the component standalone and set `ChangeDetectionStrategy.OnPush` using exact verified imports.
++3. Apply parent-approved typed boundaries; retain pure helpers and rendering-relevant local state.
++4. Remove only application coupling replaced by those boundaries and report anything unclassified.
++
++## 8. Checks & Verification
++
++Check metadata/import completeness, member-template agreement, lifecycle semantics, strict types, and zero unexplained production imports; leave integrated compilation to the verifier.
++
++## 9. Return Condition
++
++Return `COMPLETED` with changed files and contract summary, or `BLOCKED` when required type/behavior evidence is absent.
+diff --git a/.agents/component-tree-migration/subagents/environment-adaptation.md b/.agents/component-tree-migration/subagents/environment-adaptation.md
+new file mode 100644
+index 0000000..37958fc
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/environment-adaptation.md
+@@ -0,0 +1,43 @@
++# Environment Adaptation Sub-Agent
++
++## 1. Goal
++
++Replace assigned environment, feature-flag, permission, or machine-dependent configuration reads with deterministic typed controlled values.
++
++## 2. When Parent Should Use It
++
++Use when analysis or the file plan identifies environment/configuration coupling in the current node.
++
++## 3. Inputs
++
++- Assigned node files and cited environment/config declarations
++- Approved controlled-value contracts and source branch/default semantics
++- Template/rendering evidence for each value
++
++## 4. Outputs
++
++- Assigned current-node environment-boundary edits
++- Return map of each source configuration read to its controlled typed value and covered branches
++
++## 5. Allowed Scope
++
++Write only assigned current-node TypeScript/template portions; read cited declarations required to identify exact types/branches.
++
++## 6. Forbidden Scope
++
++Machine-dependent reads, secret values, fabricated production defaults, global config/harness/data changes, other nodes, state/logs/handoff.
++
++## 7. Procedure
++
++1. Inventory environment, token, flag, permission, and global reads.
++2. Replace each with the approved typed input or node-local controlled value.
++3. Preserve enabled/disabled and permission-denied rendering branches.
++4. Remove obsolete imports and report any value lacking deterministic treatment.
++
++## 8. Checks & Verification
++
++Search target files for environment/config remnants and verify every planned branch remains expressible through exact typed contracts.
++
++## 9. Return Condition
++
++Return `COMPLETED` with complete source-to-control mapping; otherwise `BLOCKED` on missing type/default/branch evidence.
+diff --git a/.agents/component-tree-migration/subagents/input-output-adaptation.md b/.agents/component-tree-migration/subagents/input-output-adaptation.md
+new file mode 100644
+index 0000000..41f002d
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/input-output-adaptation.md
+@@ -0,0 +1,43 @@
++# Input Output Adaptation Sub-Agent
++
++## 1. Goal
++
++Implement the assigned node's explicit, strictly typed presentation inputs and outputs from the approved boundary plan.
++
++## 2. When Parent Should Use It
++
++Use when `dumb-boundary.json`, `smart-dependencies.json`, or the node plan requires data/control contract adaptation.
++
++## 3. Inputs
++
++- Assigned node TypeScript/template and relevant plan entries
++- Exact approved contract names, types, required/default semantics, payload shapes, and source evidence
++- Verified child contracts when events or values are forwarded
++
++## 4. Outputs
++
++- Assigned node TypeScript/template contract edits
++- Return inventory mapping each source read/effect to its resulting input/output and payload
++
++## 5. Allowed Scope
++
++Write only the parent-assigned contract portions of the current node files; read cited types and verified child contracts.
++
++## 6. Forbidden Scope
++
++Invented defaults, `any`, silent no-op outputs, harness/data implementation, unrelated APIs, shared artifacts/state/logs/handoff.
++
++## 7. Procedure
++
++1. Trace each planned data read or control effect to its exact typed contract.
++2. Add `@Input()` values with approved required/default semantics and `@Output()` events with minimal typed intent payloads.
++3. Update assigned bindings/handlers and preserve loading, empty, error, and timing distinctions.
++4. Report discrepancies to the parent rather than expanding the public API speculatively.
++
++## 8. Checks & Verification
++
++Account for every assigned boundary entry; verify names/types/payloads against plans, no `any`, and template/event bindings match declarations.
++
++## 9. Return Condition
++
++Return `COMPLETED` with a source-to-contract map, or `BLOCKED` with the exact unresolved type/default/effect evidence.
+diff --git a/.agents/component-tree-migration/subagents/local-state-adaptation.md b/.agents/component-tree-migration/subagents/local-state-adaptation.md
+new file mode 100644
+index 0000000..d727582
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/local-state-adaptation.md
+@@ -0,0 +1,43 @@
++# Local State Adaptation Sub-Agent
++
++## 1. Goal
++
++Preserve rendering-relevant local presentation state and interactions without promoting them unnecessarily to application or benchmark state.
++
++## 2. When Parent Should Use It
++
++Use when the current node owns transient tabs, expansion, selection, focus, hover, form draft, or similar presentation state.
++
++## 3. Inputs
++
++- Assigned node TypeScript/template and source interaction/lifecycle evidence
++- Planned boundary contracts and verified child events
++- State initialization, transition, and reset behavior
++
++## 4. Outputs
++
++- Assigned current-node local-state edits
++- Return state table describing initial values, transitions, triggers, rendering effects, and preserved timing
++
++## 5. Allowed Scope
++
++Write only parent-assigned current-node TypeScript/template portions for local presentation state.
++
++## 6. Forbidden Scope
++
++Moving application data into local state, exposing unnecessary root inputs, global/store state, fabricated interactions, other nodes, state/logs/handoff.
++
++## 7. Procedure
++
++1. Distinguish local presentation state from externally owned application data.
++2. Preserve initial values, lifecycle resets, transitions, and template visibility.
++3. Keep state internal unless an approved boundary requires external control/observation.
++4. Wire verified child events without changing interaction semantics.
++
++## 8. Checks & Verification
++
++Trace every source transition to target code and template effect; verify no application data was internalized and no local behavior was silently dropped.
++
++## 9. Return Condition
++
++Return `COMPLETED` with the state-transition table; otherwise `BLOCKED` when ownership or transition evidence is ambiguous.
+diff --git a/.agents/component-tree-migration/subagents/ngrx-adaptation.md b/.agents/component-tree-migration/subagents/ngrx-adaptation.md
+new file mode 100644
+index 0000000..68b376f
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/ngrx-adaptation.md
+@@ -0,0 +1,43 @@
++# NgRx Adaptation Sub-Agent
++
++## 1. Goal
++
++Remove assigned NgRx coupling by replacing selector/store reads with typed data contracts and dispatches with typed user-intent events.
++
++## 2. When Parent Should Use It
++
++Use only when the current node's analyzed dependencies contain NgRx imports, reads, selectors, actions, or dispatches.
++
++## 3. Inputs
++
++- Assigned node files and cited NgRx source declarations
++- Relevant `smart-dependencies.json`, `dumb-boundary.json`, and file-plan treatments
++- Parent-approved input/output names, types, timing/default semantics, and payloads
++
++## 4. Outputs
++
++- Assigned current-node edits removing planned NgRx coupling
++- Return map of every selector/read/dispatch/import to its typed replacement
++
++## 5. Allowed Scope
++
++Write only assigned portions of current-node TypeScript/template; read cited selectors/actions/models needed for exact shapes.
++
++## 6. Forbidden Scope
++
++Installing NgRx, retaining store access, inventing state, altering reducers/actions, harness implementation, other nodes, state/logs/handoff.
++
++## 7. Procedure
++
++1. Inventory assigned store imports, injection, selects, subscriptions/signals, async-template use, and dispatches.
++2. Replace reads with approved typed inputs while preserving loading/error/empty timing distinctions.
++3. Replace dispatches with minimal typed outputs and preserve local confirmation/presentation behavior.
++4. Remove now-unused NgRx code and account for every original match.
++
++## 8. Checks & Verification
++
++Search assigned target files for NgRx/store remnants; reconcile every source occurrence to a contract and check template/member consistency.
++
++## 9. Return Condition
++
++Return `COMPLETED` with zero unexplained NgRx references and the mapping; otherwise `BLOCKED` with unresolved selector/action evidence.
+diff --git a/.agents/component-tree-migration/subagents/node-compilation-verification.md b/.agents/component-tree-migration/subagents/node-compilation-verification.md
+new file mode 100644
+index 0000000..a3fa7ad
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/node-compilation-verification.md
+@@ -0,0 +1,42 @@
++# Node Compilation Verification Sub-Agent
++
++## 1. Goal
++
++Verify one migrated node and its completed descendants compile with stable contracts and no unexpected production application dependency before parent progress is allowed.
++
++## 2. When Parent Should Use It
++
++Use after all edits for the current queue node are integrated; use again for the root-last final UI-tree check.
++
++## 3. Inputs
++
++- Current node identifier, exact target files, and position in `file-plan.json.validationOrder`
++- Completed descendant/child contract evidence and applicable plan/boundary entries
++- Parent-provided smallest compile/type-check command and repository root
++
++## 4. Outputs
++
++- Read-only structured result: command, exit code, concise diagnostics, imports/contracts/dependency checks, child evidence, and `PASSED`/`FAILED`/`BLOCKED`
++
++## 5. Allowed Scope
++
++Read current node, completed descendants, plans, and compiler output; run non-mutating compile/search checks only.
++
++## 6. Forbidden Scope
++
++Any file edit, repair, error suppression, ancestor validation before node success, generator/test/harness work, state/log/handoff writes, and destructive commands.
++
++## 7. Procedure
++
++1. Confirm the node is the next queue entry and every direct child has prior passing evidence and a stable consumed contract.
++2. Run the smallest Angular template/TypeScript compile covering the node and completed descendants; capture exact output and exit code.
++3. Inspect standalone imports/selectors, `OnPush`, typed inputs/outputs, template members, Less/assets, and planned dependency treatments.
++4. Search for unexplained NgRx, backend service, router, environment, HTTP, `any`, placeholders, or suppressed errors.
++
++## 8. Checks & Verification
++
++Require zero compile exit, resolved child imports/selectors, exact contract agreement, complete file-plan disposition, and no unexpected production coupling. Never convert failure into warning.
++
++## 9. Return Condition
++
++Return `PASSED` with reproducible evidence only when every check succeeds; return `FAILED` with diagnostics for compile/check failure or `BLOCKED` for missing child/source/plan evidence. The parent must not proceed upward on either outcome.
+diff --git a/.agents/component-tree-migration/subagents/pipe-directive-migration.md b/.agents/component-tree-migration/subagents/pipe-directive-migration.md
+new file mode 100644
+index 0000000..4f2103c
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/pipe-directive-migration.md
+@@ -0,0 +1,43 @@
++# Pipe Directive Migration Sub-Agent
++
++## 1. Goal
++
++Migrate or reuse the assigned presentation pipes/directives with exact behavior and wire them into the standalone node.
++
++## 2. When Parent Should Use It
++
++Use when the current template depends on custom pipes/directives not already available through a verified compatible target import.
++
++## 3. Inputs
++
++- Current node template/TypeScript and file-plan operations
++- Assigned read-only pipe/directive source plus direct pure helpers/types
++- Planned target or reuse candidate and fidelity evidence
++
++## 4. Outputs
++
++- Exact assigned pipe/directive target files and current-node standalone import wiring
++- Return summary of behavior, selectors/names, dependencies, reuse/copy evidence, and risks
++
++## 5. Allowed Scope
++
++Write only planned pipe/directive files and assigned current-node import entries; read directly required presentation dependencies.
++
++## 6. Forbidden Scope
++
++Application/service dependencies, unrelated shared UI, unplanned generalization, global registration, state/logs/handoff, and reuse below verified 100% fidelity.
++
++## 7. Procedure
++
++1. Compare any reuse candidate to source behavior, inputs, output/transform, and rendering effects.
++2. Reuse only at verified 100% fidelity; otherwise copy and minimally adapt the source declaration.
++3. Make compatible declarations standalone or import their verified standalone/module form.
++4. Preserve names/selectors/purity and report unresolved application coupling.
++
++## 8. Checks & Verification
++
++Verify every template usage resolves, standalone imports are exact, behavior/types match source, and all direct dependencies are accounted for.
++
++## 9. Return Condition
++
++Return `COMPLETED` with copy/reuse fidelity evidence; otherwise `BLOCKED` for missing source/dependency or unverifiable reuse.
+diff --git a/.agents/component-tree-migration/subagents/router-adaptation.md b/.agents/component-tree-migration/subagents/router-adaptation.md
+new file mode 100644
+index 0000000..c9c1e30
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/router-adaptation.md
+@@ -0,0 +1,43 @@
++# Router Adaptation Sub-Agent
++
++## 1. Goal
++
++Replace route-derived state with controlled typed inputs and navigation commands with typed intent outputs.
++
++## 2. When Parent Should Use It
++
++Use when the current node reads `ActivatedRoute`, router state, params/query/data, or calls navigation APIs.
++
++## 3. Inputs
++
++- Assigned node files and cited route/navigation source
++- Approved route input and navigation output contracts
++- Evidence for defaults, parsing, destination shape, and timing
++
++## 4. Outputs
++
++- Assigned current-node router-boundary edits
++- Return mapping of every route read/subscription/navigation to its controlled contract
++
++## 5. Allowed Scope
++
++Write only parent-assigned current-node TypeScript/template portions; read directly referenced route types/constants.
++
++## 6. Forbidden Scope
++
++Angular Router/ActivatedRoute retention, real navigation, fabricated route defaults, harness/story work, other nodes, state/logs/handoff.
++
++## 7. Procedure
++
++1. Inventory params, query, data, subscriptions, snapshots, URL-derived computations, and navigations.
++2. Replace reads with approved typed inputs while preserving parsing and presentation timing.
++3. Emit approved minimal navigation intents instead of calling the router.
++4. Remove unused router imports and preserve local UI state around navigation requests.
++
++## 8. Checks & Verification
++
++Search assigned targets for router APIs; account for each source occurrence and verify contract types, destination payloads, and template bindings.
++
++## 9. Return Condition
++
++Return `COMPLETED` with zero unexplained router coupling; otherwise `BLOCKED` with the missing route or destination evidence.
+diff --git a/.agents/component-tree-migration/subagents/service-adaptation.md b/.agents/component-tree-migration/subagents/service-adaptation.md
+new file mode 100644
+index 0000000..f5c082f
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/service-adaptation.md
+@@ -0,0 +1,43 @@
++# Service Adaptation Sub-Agent
++
++## 1. Goal
++
++Replace assigned application service reads with typed inputs and commands with typed outputs while preserving presentation behavior.
++
++## 2. When Parent Should Use It
++
++Use when the current node depends on backend, query, mutation, auth, permission, or other application services.
++
++## 3. Inputs
++
++- Assigned node files and directly cited service methods/types
++- Planned dependency treatment and approved contract definitions
++- Source timing, loading/error behavior, and command payload evidence
++
++## 4. Outputs
++
++- Assigned current-node service-boundary edits
++- Return map of injections/calls/subscriptions/commands to typed contracts and retained local behavior
++
++## 5. Allowed Scope
++
++Write only assigned current-node files; read only directly referenced services/models necessary to establish exact behavior.
++
++## 6. Forbidden Scope
++
++HTTP/backend calls, service mocks with fabricated behavior, silent no-ops, harness/data work, unrelated services/nodes, state/logs/handoff.
++
++## 7. Procedure
++
++1. Account for service injection, read streams/promises, mutation calls, and template-visible state.
++2. Convert data/state reads to approved typed inputs, retaining state distinctions and timing semantics.
++3. Convert commands to minimal typed outputs while retaining confirmations and local presentation state.
++4. Remove unused service imports and report any unplanned side effect.
++
++## 8. Checks & Verification
++
++Search target files for assigned service/import remnants, verify each call has a planned replacement, and validate payload/type agreement without `any`.
++
++## 9. Return Condition
++
++Return `COMPLETED` with complete replacement evidence; otherwise `BLOCKED` on missing response/payload/timing evidence.
+diff --git a/.agents/component-tree-migration/subagents/side-effect-adaptation.md b/.agents/component-tree-migration/subagents/side-effect-adaptation.md
+new file mode 100644
+index 0000000..9487ef1
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/side-effect-adaptation.md
+@@ -0,0 +1,43 @@
++# Side Effect Adaptation Sub-Agent
++
++## 1. Goal
++
++Convert assigned non-presentational side effects into explicit typed intents while retaining presentation-only feedback and interaction sequencing.
++
++## 2. When Parent Should Use It
++
++Use when the current node performs analytics, alerts, storage, mutation, global messaging, clipboard, or other external effects.
++
++## 3. Inputs
++
++- Assigned node files and cited effect implementation
++- Planned effect treatment and approved event/harness-action contract
++- Evidence for payload, ordering, confirmation, and error-visible behavior
++
++## 4. Outputs
++
++- Assigned current-node effect-boundary edits
++- Return map of each source effect to emitted intent or retained presentation behavior
++
++## 5. Allowed Scope
++
++Write only parent-assigned portions of the current node; read directly referenced effect types/constants.
++
++## 6. Forbidden Scope
++
++Executing external effects, silent no-ops, fake success/error state, harness implementation, global APIs, other nodes, state/logs/handoff.
++
++## 7. Procedure
++
++1. Inventory each effect, trigger, payload, ordering, and visible local feedback.
++2. Preserve presentation-only state and confirmations.
++3. Replace external actions with approved minimal typed outputs or explicitly planned harness actions.
++4. Remove obsolete dependencies and report effects without a valid disposition.
++
++## 8. Checks & Verification
++
++Account for every assigned effect and verify no external API call remains, outputs carry exact payloads, and visible sequencing is preserved.
++
++## 9. Return Condition
++
++Return `COMPLETED` with complete effect mapping; otherwise `BLOCKED` on missing payload/order/feedback evidence.
+diff --git a/.agents/component-tree-migration/subagents/style-migration.md b/.agents/component-tree-migration/subagents/style-migration.md
+new file mode 100644
+index 0000000..9877cf5
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/style-migration.md
+@@ -0,0 +1,43 @@
++# Style Migration Sub-Agent
++
++## 1. Goal
++
++Copy and minimally adapt one node's Less/CSS and referenced visual assets while preserving cascade, layout, classes, tokens, animations, and encapsulation.
++
++## 2. When Parent Should Use It
++
++Use for each queued node with planned styles or asset URL operations, after its target path is fixed.
++
++## 3. Inputs
++
++- Node style/asset operations from `file-plan.json`
++- Assigned read-only legacy styles and directly imported mixins/tokens/assets
++- Target template classes, planned shared dependencies, and destination paths
++
++## 4. Outputs
++
++- Assigned target Less/CSS and planned node-local asset edits
++- Return inventory of selectors/imports/tokens/assets, path changes, and fidelity risks
++
++## 5. Allowed Scope
++
++Write only the exact planned node stylesheet and assigned node-local asset targets; read directly imported style dependencies.
++
++## 6. Forbidden Scope
++
++Global/theme/package changes, selector redesign, visual simplification, unrelated assets/styles, generated data, state/logs/handoff, and speculative token replacement.
++
++## 7. Procedure
++
++1. Copy rules, selector order/specificity, variables, mixins, animations, and transitions faithfully.
++2. Reconcile selectors with the preserved target template without renaming classes.
++3. Resolve imports and asset URLs deliberately using planned shared or copied targets.
++4. Report unavailable tokens/assets or any necessary visual deviation to the parent.
++
++## 8. Checks & Verification
++
++Account for every source import/URL/selector, verify target paths exist and template classes correspond, and perform the smallest available Less syntax check without editing outside scope.
++
++## 9. Return Condition
++
++Return `COMPLETED` with style/asset inventory and check result; otherwise `BLOCKED` on missing dependency or unresolved fidelity change.
+diff --git a/.agents/component-tree-migration/subagents/template-migration.md b/.agents/component-tree-migration/subagents/template-migration.md
+new file mode 100644
+index 0000000..35b92cb
+--- /dev/null
++++ b/.agents/component-tree-migration/subagents/template-migration.md
+@@ -0,0 +1,43 @@
++# Template Migration Sub-Agent
++
++## 1. Goal
++
++Copy and minimally adapt the assigned node's Angular template while preserving its rendered DOM, semantics, accessibility, classes, bindings, and child composition.
++
++## 2. When Parent Should Use It
++
++Use for one queued node after every planned child contract is compiled and before node verification.
++
++## 3. Inputs
++
++- Node entry and template operation from `file-plan.json`
++- Assigned read-only legacy template and directly referenced presentation declarations
++- Planned target template, `dumb-boundary.json`, and verified direct-child selectors/contracts
++
++## 4. Outputs
++
++- The assigned target HTML/template edit
++- Return summary of preserved structure, necessary binding/path changes, child contracts consumed, and unresolved fidelity risks
++
++## 5. Allowed Scope
++
++Read only assigned source/context; write only the node's exact planned target template.
++
++## 6. Forbidden Scope
++
++Other nodes, TypeScript/styles/state/logs/handoff, markup redesign, placeholder children, accessibility removal, fabricated values, and bulk tree copying.
++
++## 7. Procedure
++
++1. Compare source and planned contracts element by element.
++2. Copy semantic structure, ordering, attributes, classes, bindings, and accessibility unchanged where valid.
++3. Change only imports/selectors/bindings required by verified migrated child or boundary contracts.
++4. Account for every source child selector and report any unavailable child instead of stubbing it.
++
++## 8. Checks & Verification
++
++Diff source versus target structure; verify every expression names an available member and every child selector maps to an already-compiled contract. Do not run or claim node compilation.
++
++## 9. Return Condition
++
++Return `COMPLETED` with files/evidence only when the template is faithful and internally accounted for; otherwise `BLOCKED` with the exact missing contract/source.
+diff --git a/.superpowers/sdd/prompt.txt/task-4-report.md b/.superpowers/sdd/prompt.txt/task-4-report.md
+new file mode 100644
+index 0000000..5ecf6c2
+--- /dev/null
++++ b/.superpowers/sdd/prompt.txt/task-4-report.md
+@@ -0,0 +1,91 @@
++# Task 4 Report: Component Tree Migration Core Engine
++
++## Status
++
++DONE
++
++## Summary
++
++Created the Stage 05 Component Tree Migration prompt set: one main agent with the repository-standard 17-section contract and exactly thirteen specialized workers with the repository-standard 9-section contract. The prompts make `plan/file-plan.json.validationOrder` the executable strict post-order queue, require every child contract to compile before its parent, reserve the scaffolded root UI for last, and prohibit generator and later-stage work.
++
++## Files Created
++
++- `.agents/component-tree-migration/AGENT.md`
++- `.agents/component-tree-migration/subagents/template-migration.md`
++- `.agents/component-tree-migration/subagents/component-logic-migration.md`
++- `.agents/component-tree-migration/subagents/child-component-migration.md`
++- `.agents/component-tree-migration/subagents/input-output-adaptation.md`
++- `.agents/component-tree-migration/subagents/ngrx-adaptation.md`
++- `.agents/component-tree-migration/subagents/service-adaptation.md`
++- `.agents/component-tree-migration/subagents/router-adaptation.md`
++- `.agents/component-tree-migration/subagents/environment-adaptation.md`
++- `.agents/component-tree-migration/subagents/local-state-adaptation.md`
++- `.agents/component-tree-migration/subagents/side-effect-adaptation.md`
++- `.agents/component-tree-migration/subagents/pipe-directive-migration.md`
++- `.agents/component-tree-migration/subagents/style-migration.md`
++- `.agents/component-tree-migration/subagents/node-compilation-verification.md`
++- `.superpowers/sdd/prompt.txt/task-4-report.md`
++
++## Requirements Implemented
++
++- Defined exact required, optional, and do-not-load-by-default stage context.
++- Required completed Component Scaffold handoff, valid analysis/planning artifacts, parseable file plan, complete unique validation order, child-before-parent ordering, and root-last ordering.
++- Defined the thirteen required worker names and limited delegation to `.agents/skills/subagent-driven-development/SKILL.md`.
++- Assigned parent ownership of integration, queue/order, shared state, decisions, validation records, handoff, and worker scope isolation.
++- Required one-node-at-a-time copy-and-adapt behavior; explicitly forbade raw bulk tree copying.
++- Preserved DOM, attributes, accessibility, classes, Less/CSS, composition, rendering logic, local presentation state, and visual interactions.
++- Defined typed boundary recipes for NgRx, services, routing, environment/configuration, application side effects, inputs/outputs, local state, pipes/directives, and styles/assets.
++- Required shared UI reuse to be reverified at 100% visual and behavioral fidelity.
++- Required the smallest covering Angular compile/type-check after every node and prohibited upward progress after failure.
++- Required per-node evidence in `validation/build-report.md`, meaningful deviations in `logs/decisions.md`, exact state ownership, and canonical `handoffs/component-tree-migration.md` output.
++- Explicitly prohibited `npm run generate:component`, component data/harness/test/benchmark work, production-source edits, placeholders, `any` contracts, silent no-ops, and actual component migration during this task.
++
++## Validation Performed
++
++### Inventory and template validation
++
++Command: PowerShell inventory/template assertion over `.agents/component-tree-migration/`.
++
++Result:
++
++```text
++exactInventory=True
++exactWorkers=True
++exactMainTemplate=True
++everyWorkerNineSections=True
++headingWhitespace=True
++strictQueue=True
++nodeGate=True
++boundaryRecipes=True
++stageLimits=True
++canonicalHandoff=True
++```
++
++This verified one main file plus exactly thirteen specified worker files, the exact ordered 17 main headings, exactly nine numbered headings per worker, blank lines after headings, strict queue invariants, compile gating, boundary recipes, stage limits, and the canonical handoff path.
++
++### Whitespace validation
++
++Command:
++
++```text
++git diff --check -- .agents/component-tree-migration
++```
++
++Result: passed with no whitespace errors.
++
++### Scope validation
++
++Inspected the scoped status/diff for Task 4. Task 4 creates only the component-tree migration prompt directory and this report; it does not edit any Angular component, production source, generator, data, harness, test, benchmark, or unrelated dirty file.
++
++## Self-Review
++
++- The main file follows the same exact section names and order used by the existing stage-agent contract.
++- Every worker follows the same exact nine-section names and order used by existing worker prompts.
++- Worker scopes are node-specific and disjoint; no worker may edit shared migration state, decisions, build report, or handoff.
++- Failed compilation cannot be downgraded to a warning, and both failure and missing/contradictory evidence halt ancestor progress.
++- The root is explicitly migrated last, not merely validated last.
++- The prompts stop at Stage 05 DoD and recommend, but do not invoke, the Data stage.
++
++## Concerns
++
++None.
+-- 
+2.55.0.windows.1
+

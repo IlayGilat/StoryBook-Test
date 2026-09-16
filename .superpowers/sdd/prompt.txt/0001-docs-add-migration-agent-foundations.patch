@@ -1,0 +1,337 @@
+From 691f2a0fcad293f73ab957f474a8ba63dd033fe8 Mon Sep 17 00:00:00 2001
+From: GILAT ILAY <ILAYGIL@rafael.co.il>
+Date: Tue, 15 Sep 2026 15:48:25 +0300
+Subject: [PATCH] docs: add migration agent foundations
+
+---
+ .agents/README.md                  |  37 +++++++++
+ .agents/shared/core-rules.md       |  21 +++++
+ .agents/shared/handoff-contract.md |  42 ++++++++++
+ .agents/shared/state-schema.md     | 122 +++++++++++++++++++++++++++++
+ AGENTS.md                          |  64 +++++++--------
+ 5 files changed, 255 insertions(+), 31 deletions(-)
+ create mode 100644 .agents/README.md
+ create mode 100644 .agents/shared/core-rules.md
+ create mode 100644 .agents/shared/handoff-contract.md
+ create mode 100644 .agents/shared/state-schema.md
+
+diff --git a/.agents/README.md b/.agents/README.md
+new file mode 100644
+index 0000000..08131fd
+--- /dev/null
++++ b/.agents/README.md
+@@ -0,0 +1,37 @@
++# Angular Component Migration Agents
++
++This directory defines a context-efficient, human-driven system for migrating legacy Angular 16 component trees into StoryBook-Test benchmark targets. It defines the system only; invoking a stage performs migration work.
++
++## Operating Model
++
++A human invokes exactly one main stage at a time. The stage loads its own `AGENT.md`, the shared rules, and only its declared migration artifacts. It may load a worker prompt only when delegating that worker through `.agents/skills/subagent-driven-development/SKILL.md`. After integration and stage-level validation, it updates deterministic state, writes a factual handoff, and stops.
++
++Stages run in this order:
++
++1. `project-bootstrap`
++2. `source-analysis`
++3. `migration-planning`
++4. `component-scaffold`
++5. `component-tree-migration`
++6. `data`
++7. `harness`
++8. `benchmark-integration`
++9. `test`
++10. `fidelity-validation`
++11. `repair` when a concrete failure requires it
++
++No stage automatically invokes the next stage. Each is independently resumable from `.migrations/<component>/state.json` and the latest handoff.
++
++## Shared Contracts
++
++- [`shared/core-rules.md`](shared/core-rules.md) contains non-negotiable rules for every stage and worker.
++- [`shared/state-schema.md`](shared/state-schema.md) defines the canonical migration state and deterministic update rules.
++- [`shared/handoff-contract.md`](shared/handoff-contract.md) defines the concise stage-to-stage handoff.
++
++Each migration owns `.migrations/<component>/`, with `source/`, `analysis/`, `plan/`, `logs/`, `validation/`, and `handoffs/` artifacts created incrementally. Production source remains external and read-only.
++
++## Traversal and Generation
++
++Discover rendered descendants top-down from the requested benchmark root. Create/adapt components bottom-up in strict post-order, stabilizing and validating children before their parents. Adapt application boundaries while each node is created; never bulk-copy an unadapted tree.
++
++Run `npm run generate:component <name>` exactly once, only for the top-level benchmark target. Child nodes belong inside that target's `ui/` tree and are not independent benchmark roots.
+diff --git a/.agents/shared/core-rules.md b/.agents/shared/core-rules.md
+new file mode 100644
+index 0000000..700d25b
+--- /dev/null
++++ b/.agents/shared/core-rules.md
+@@ -0,0 +1,21 @@
++# Shared Core Rules
++
++These rules bind every migration stage and worker.
++
++1. **Production source is read-only.** Never edit the external legacy application repository or any of its source files.
++2. **Fidelity precedes refactoring.** Preserve visual appearance, DOM structure, class names, styles, and rendering behavior before architectural cleanup.
++3. **Repository standards are law.** Follow the established Angular 16 standalone, `OnPush`, Less, Storybook 8, Zod, and Playwright patterns in `src/benchmark/` and `src/components/`.
++4. **Delegation is standardized.** Delegate only through `.agents/skills/subagent-driven-development/SKILL.md`. The main agent coordinates disjoint write scopes, integrates results, updates shared state, and performs final stage validation.
++5. **Context loads lazily.** Load only the active stage's `AGENT.md`, its required artifacts, and source files needed for the current work. Load a worker prompt only when invoking that worker; never load all stages.
++6. **Global context stays small.** Do not load unreferenced worker instructions, unrelated documentation, raw notes, historical conversations, or old handoffs by default.
++7. **Deviations are explicit.** Record every meaningful architectural or behavioral alteration in `.migrations/<component>/logs/decisions.md`, including the change, reason, fidelity impact, and `Temporary` or `Accepted` status.
++8. **Validation is incremental.** Compile, test, or otherwise verify the current stage and, during tree migration, each adapted node before declaring completion.
++9. **Definition of Done is strict.** Stop immediately after the active stage's DoD is satisfied and its state and handoff are complete.
++10. **Stages do not bleed.** Never auto-advance or silently perform work owned by a subsequent stage.
++
++## Migration Invariants
++
++- Discover the rendered tree top-down from the benchmark root; create and adapt nodes bottom-up in strict post-order. Never bulk-copy a raw tree for later conversion.
++- Run `npm run generate:component <name>` exactly once per migration and only for the top-level benchmark target. Never generate child components separately.
++- Classify source dependencies as presentation, data, application control, or environment dependencies. Preserve presentation dependencies; convert data to inputs, control effects to outputs or harness actions, and environment state to controlled values.
++- If required source material is missing, record the missing input, mark the stage blocked, and stop without inventing behavior or data structures.
+diff --git a/.agents/shared/handoff-contract.md b/.agents/shared/handoff-contract.md
+new file mode 100644
+index 0000000..4156f6d
+--- /dev/null
++++ b/.agents/shared/handoff-contract.md
+@@ -0,0 +1,42 @@
++# Stage Handoff Contract
++
++Every main stage writes `.migrations/<component>/handoffs/<stage-name>.md` before stopping. A handoff records verified facts and outcomes, not chain-of-thought, scratchpad notes, or a replay of the procedure. The next stage loads only the latest handoff and artifacts its own `AGENT.md` requires.
++
++Use the exact section order below. Use `None` when a section has no entries; do not omit sections. Paths are repository-relative unless the source is external.
++
++```markdown
++# Handoff: [Stage Name]
++
++- **Component**: [component-name]
++- **Stage**: [stage-name]
++- **Status**: [COMPLETED | FAILED | BLOCKED]
++- **Timestamp**: [ISO 8601 UTC timestamp]
++
++## Inputs Used
++- [Artifacts and source files inspected]
++
++## Work Completed
++- [Concise, concrete outcomes]
++
++## Files Changed / Created
++- `path/to/created/or/modified/file`
++
++## Important Decisions
++- [Decision summary and reference to `logs/decisions.md`]
++
++## Known Deviations
++- [Deliberate behavioral or visual deviations from production source]
++
++## Warnings / Open Risks
++- [Blockers or risks relevant to later stages]
++
++## Validation Results
++- `[command]`: [result]
++
++## Next Stage Requirements
++- **Recommended Next Agent**: [next stage name, or `None`]
++- **Artifacts Ready for Next Agent**:
++  - `path/to/artifact`
++```
++
++The handoff status and timestamp must match the final update to `state.json`. `COMPLETED` means the active stage's DoD passed; `FAILED` means attempted validation failed; `BLOCKED` means required input or authority is unavailable. A handoff recommends a next stage but never invokes it.
+diff --git a/.agents/shared/state-schema.md b/.agents/shared/state-schema.md
+new file mode 100644
+index 0000000..ad59eaa
+--- /dev/null
++++ b/.agents/shared/state-schema.md
+@@ -0,0 +1,122 @@
++# Migration State Schema
++
++Each top-level migration owns `.migrations/<component-name>/state.json`. The file is the concise, deterministic resume point for stage agents.
++
++## JSON Schema
++
++```json
++{
++  "$schema": "http://json-schema.org/draft-07/schema#",
++  "title": "MigrationState",
++  "type": "object",
++  "additionalProperties": false,
++  "required": [
++    "component",
++    "status",
++    "currentStage",
++    "completedStages",
++    "targetLocation",
++    "warnings",
++    "lastUpdatedBy",
++    "updatedAt"
++  ],
++  "properties": {
++    "component": {
++      "type": "string",
++      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
++      "description": "Kebab-case name of the top-level component"
++    },
++    "sourcePath": {
++      "type": "string",
++      "description": "Absolute or relative path to the read-only legacy component source"
++    },
++    "status": {
++      "type": "string",
++      "enum": ["not_started", "in_progress", "completed", "failed", "blocked"]
++    },
++    "currentStage": {
++      "type": "string",
++      "enum": [
++        "project-bootstrap",
++        "source-analysis",
++        "migration-planning",
++        "component-scaffold",
++        "component-tree-migration",
++        "data",
++        "harness",
++        "benchmark-integration",
++        "test",
++        "fidelity-validation",
++        "repair"
++      ]
++    },
++    "completedStages": {
++      "type": "array",
++      "uniqueItems": true,
++      "items": {
++        "type": "string",
++        "enum": [
++          "project-bootstrap",
++          "source-analysis",
++          "migration-planning",
++          "component-scaffold",
++          "component-tree-migration",
++          "data",
++          "harness",
++          "benchmark-integration",
++          "test",
++          "fidelity-validation",
++          "repair"
++        ]
++      }
++    },
++    "targetLocation": {
++      "type": "string",
++      "pattern": "^src/components/[a-z0-9]+(?:-[a-z0-9]+)*$",
++      "description": "Benchmark root, for example src/components/customer-page"
++    },
++    "warnings": {
++      "type": "array",
++      "items": { "type": "string" }
++    },
++    "lastUpdatedBy": {
++      "type": "string",
++      "description": "Name of the stage or worker updating state"
++    },
++    "updatedAt": {
++      "type": "string",
++      "format": "date-time"
++    }
++  }
++}
++```
++
++## Deterministic Update Rules
++
++- Serialize fields in schema order and format JSON with two-space indentation plus a trailing newline.
++- Keep `completedStages` in canonical stage order, without duplicates. Add a stage only after its DoD and validation pass.
++- Set `currentStage` to the stage being executed. Never advance it on behalf of the next stage.
++- Set `status` to `in_progress` when a stage begins; use `failed` for failed validation, `blocked` for missing prerequisites, and `completed` only when the migration itself has completed its required terminal validation.
++- Replace `updatedAt` with the update's ISO 8601 UTC timestamp and set `lastUpdatedBy` to the sole writer. Only the main agent writes `state.json`; concurrently delegated workers must not edit it.
++- Keep warnings concise, stable, and ordered by first discovery. Remove one only when its cause is verified resolved.
++
++## Example
++
++```json
++{
++  "component": "customer-page",
++  "sourcePath": "../legacy-app/src/app/pages/customer-page",
++  "status": "in_progress",
++  "currentStage": "component-tree-migration",
++  "completedStages": [
++    "project-bootstrap",
++    "source-analysis",
++    "migration-planning",
++    "component-scaffold"
++  ],
++  "targetLocation": "src/components/customer-page",
++  "warnings": [],
++  "lastUpdatedBy": "component-scaffold",
++  "updatedAt": "2026-09-15T10:00:00Z"
++}
++```
+diff --git a/AGENTS.md b/AGENTS.md
+index eb0bd0c..b428993 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -1,33 +1,35 @@
+ # AGENTS.md
+ 
+-## Project Overview
+-Angular 18 Storybook harness for benchmarking UI component scalability, frame rates, and memory footprints under high-stress datasets (up to 100,000 items) using Playwright browser automation.
+-
+-- **Stack**: Angular 18 (standalone, Less), Storybook 8.6, Playwright, Zod.
+-- **Package Manager**: `npm`.
+-
+-## Core Commands
+-- `npm run storybook`: Start Storybook dev server (`http://localhost:6006`).
+-- `npm run test:fast`: Run Playwright tests headed against running Storybook dev server.
+-- `npm run test:perf`: Build static Storybook and run full headless benchmark suite.
+-- `npx playwright test tests/components/<name>/<name>.spec.ts --headed`: Run targeted component test.
+-- `npm run generate:component <name>`: Scaffold a new 8-file benchmarked component and test suite (e.g. `npm run generate:component card-list`).
+-
+-## Key Architecture & Guardrails
+-- **Dumb Components (`<name>.component.ts`, `<name>.component.html`, `<name>.component.less`)**: Pure presentational UI separated into logic, template, and styles with `changeDetection: ChangeDetectionStrategy.OnPush`. Accepts data strictly via `@Input()`. Zero test or generator coupling.
+-- **Smart Containers (`<name>-container.component.ts`)**: Wraps dumb component. Extends `BaseBenchmarkContainerComponent<T>` from `../common/base-benchmark-container`. Automatically handles `[attr.data-ready]`, `[attr.aria-busy]`, `storybook-<name>-size` event dispatch, race guards, and double `rAF` paint cycles.
+-- **Storybook Stories (`<name>.stories.ts`)**: Targets the container. Performance tracker (`window.__storybookPerfTracker`) and `parameters: { layout: 'fullscreen' }` are configured globally in `.storybook/preview.ts`.
+-- **Interaction Testing (`<name>-performance.ts`)**: Delegates browser loop execution to `window.__storybookPerfTracker.runInteraction(...)`, isolating component-specific user actions.
+-- **Benchmarking**: Playwright runs single-worker (`workers: 1`). Never edit or commit `.artifacts/`.
+-
+-- **Scaffolding CLI**: Use `npm run generate:component <name>` to scaffold new components for testing.
+-- **OpenCode Conversion Agents & Skill (`.opencode/`)**:
+-  - `@component-converter <component-path>`: Primary orchestrator agent converting client/enterprise Angular components (stripping NgRx, stores, services) into standalone dumb components, Zod schemas, and performance suites.
+-  - **Subagents**: `component-analyzer`, `dumb-component-converter`, `schema-generator`, `perf-suite-generator`.
+-  - **Project Skill**: `.opencode/skills/convert-component/SKILL.md`.
+-  - **Validator**: `node .opencode/skills/convert-component/scripts/validate-conversion.mjs <name>`.
+-
+-## Detailed Documentation (Progressive Disclosure)
+-- Component implementation patterns, base container & scaffolding: [docs/COMPONENT_GUIDE.md](file:///c:/Users/ilaygil/Desktop/Code/StoryBook-Test/docs/COMPONENT_GUIDE.md)
+-- Performance scenario configuration, CDP metrics & troubleshooting: [docs/BENCHMARKING.md](file:///c:/Users/ilaygil/Desktop/Code/StoryBook-Test/docs/BENCHMARKING.md)
+-- Component Conversion Skill: [.opencode/skills/convert-component/SKILL.md](file:///c:/Users/ilaygil/Desktop/Code/StoryBook-Test/.opencode/skills/convert-component/SKILL.md)
++## Repository
++
++StoryBook-Test is an Angular 16.2.12 standalone-component harness for Storybook 8.6 and Playwright performance benchmarking at dataset sizes up to 100,000 items. It uses Less, Zod-validated deterministic data, and single-worker browser benchmarks.
++
++Read `.agents/shared/core-rules.md` before migration work. This file contains only durable repository rules; stage procedures live under `.agents/<stage>/AGENT.md`.
++
++## Commands
++
++- `npm run storybook` starts Storybook at `http://localhost:6006`.
++- `npm run build-storybook` builds the static Storybook.
++- `npm run test:fast` runs headed Playwright tests against a running Storybook.
++- `npm run test:perf` builds Storybook and runs the full headless benchmark suite.
++- `npx playwright test src/components/<name>/test/<name>.spec.ts --headed` runs one component suite.
++- `npm run generate:component <name>` scaffolds one top-level benchmark target.
++
++## Benchmark Architecture
++
++- A benchmark target owns `src/components/<name>/{ui,data,harness,test}/`.
++- UI components are standalone, presentational, `OnPush`, and communicate through explicit `@Input()`/`@Output()` contracts. They have no benchmark or test coupling.
++- Harness containers extend `BaseBenchmarkContainerComponent<T>` from `src/benchmark/harness/benchmark-container`; preserve ready/busy attributes, race guards, sizing events, and the double-`requestAnimationFrame` paint cycle.
++- Stories target the harness. Interactions use `window.__storybookPerfTracker.runInteraction(...)`.
++- Playwright remains single-worker. Never edit or commit `.artifacts/`.
++
++## Migration Operating Rules
++
++- The external production/legacy source is strictly read-only. Write only in StoryBook-Test and `.migrations/<component>/`.
++- A human invokes one migration stage at a time. Load only `.agents/shared/core-rules.md`, the active `.agents/<stage>/AGENT.md`, and artifacts/source files that stage explicitly requires. Do not preload other stages, workers, historical handoffs, or unrelated docs.
++- Delegate only through the existing `.agents/skills/subagent-driven-development/SKILL.md`; do not recreate or bypass it. The active main agent owns integration, state updates, and validation.
++- Discover the rendered component tree top-down. Create and adapt it bottom-up in strict post-order, validating each node before its parent.
++- Run `npm run generate:component <name>` once per migration, for the top-level benchmark target only. Never run it for child components.
++- Preserve DOM, styles, and behavior before refactoring. Record meaningful deviations in `.migrations/<component>/logs/decisions.md`.
++- Update state according to `.agents/shared/state-schema.md` and write the stage handoff according to `.agents/shared/handoff-contract.md`.
++- Stop immediately when the active stage's Definition of Done is met. Never auto-advance or silently perform work owned by a later stage.
+-- 
+2.55.0.windows.1
+

@@ -1,0 +1,2 @@
+export const UNINITIALIZED_DATASET_SIZE = -1;
+export const EMPTY_DATASET_SIZE = 0;

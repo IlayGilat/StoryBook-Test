@@ -1,0 +1,1706 @@
+From 72e1bb90b9478318800d7ad2d9b33897e0261c99 Mon Sep 17 00:00:00 2001
+From: GILAT ILAY <ILAYGIL@rafael.co.il>
+Date: Tue, 15 Sep 2026 16:29:54 +0300
+Subject: [PATCH] docs: add phase 3 migration stage agents
+
+---
+ .agents/component-scaffold/AGENT.md           | 111 +++++++++++++++++
+ .../subagents/benchmark-registry-verifier.md  |  42 +++++++
+ .../subagents/folder-structure-verifier.md    |  42 +++++++
+ .../subagents/generator-runner.md             |  43 +++++++
+ .agents/migration-planning/AGENT.md           | 115 ++++++++++++++++++
+ .../subagents/component-tree-planner.md       |  41 +++++++
+ .../subagents/data-contract-planner.md        |  43 +++++++
+ .../subagents/dumb-boundary-planner.md        |  43 +++++++
+ .../subagents/migration-manifest-generator.md |  43 +++++++
+ .../shared-component-reuse-planner.md         |  42 +++++++
+ .agents/project-bootstrap/AGENT.md            | 107 ++++++++++++++++
+ .../subagents/dependency-sync.md              |  43 +++++++
+ .../subagents/global-styles-migration.md      |  43 +++++++
+ .../subagents/shared-assets-migration.md      |  43 +++++++
+ .../subagents/shared-ui-migration.md          |  43 +++++++
+ .../subagents/storybook-build-verification.md |  42 +++++++
+ .../subagents/theme-migration.md              |  43 +++++++
+ .agents/source-analysis/AGENT.md              | 115 ++++++++++++++++++
+ .../subagents/child-component-analyzer.md     |  42 +++++++
+ .../subagents/component-tree-analyzer.md      |  43 +++++++
+ .../subagents/input-output-analyzer.md        |  41 +++++++
+ .../subagents/ngrx-dependency-analyzer.md     |  42 +++++++
+ .../subagents/service-dependency-analyzer.md  |  42 +++++++
+ .../subagents/shared-dependency-analyzer.md   |  42 +++++++
+ .../subagents/smart-dependency-analyzer.md    |  43 +++++++
+ .../subagents/style-dependency-analyzer.md    |  41 +++++++
+ .superpowers/sdd/prompt.txt/task-3-report.md  |  99 +++++++++++++++
+ 27 files changed, 1479 insertions(+)
+ create mode 100644 .agents/component-scaffold/AGENT.md
+ create mode 100644 .agents/component-scaffold/subagents/benchmark-registry-verifier.md
+ create mode 100644 .agents/component-scaffold/subagents/folder-structure-verifier.md
+ create mode 100644 .agents/component-scaffold/subagents/generator-runner.md
+ create mode 100644 .agents/migration-planning/AGENT.md
+ create mode 100644 .agents/migration-planning/subagents/component-tree-planner.md
+ create mode 100644 .agents/migration-planning/subagents/data-contract-planner.md
+ create mode 100644 .agents/migration-planning/subagents/dumb-boundary-planner.md
+ create mode 100644 .agents/migration-planning/subagents/migration-manifest-generator.md
+ create mode 100644 .agents/migration-planning/subagents/shared-component-reuse-planner.md
+ create mode 100644 .agents/project-bootstrap/AGENT.md
+ create mode 100644 .agents/project-bootstrap/subagents/dependency-sync.md
+ create mode 100644 .agents/project-bootstrap/subagents/global-styles-migration.md
+ create mode 100644 .agents/project-bootstrap/subagents/shared-assets-migration.md
+ create mode 100644 .agents/project-bootstrap/subagents/shared-ui-migration.md
+ create mode 100644 .agents/project-bootstrap/subagents/storybook-build-verification.md
+ create mode 100644 .agents/project-bootstrap/subagents/theme-migration.md
+ create mode 100644 .agents/source-analysis/AGENT.md
+ create mode 100644 .agents/source-analysis/subagents/child-component-analyzer.md
+ create mode 100644 .agents/source-analysis/subagents/component-tree-analyzer.md
+ create mode 100644 .agents/source-analysis/subagents/input-output-analyzer.md
+ create mode 100644 .agents/source-analysis/subagents/ngrx-dependency-analyzer.md
+ create mode 100644 .agents/source-analysis/subagents/service-dependency-analyzer.md
+ create mode 100644 .agents/source-analysis/subagents/shared-dependency-analyzer.md
+ create mode 100644 .agents/source-analysis/subagents/smart-dependency-analyzer.md
+ create mode 100644 .agents/source-analysis/subagents/style-dependency-analyzer.md
+ create mode 100644 .superpowers/sdd/prompt.txt/task-3-report.md
+
+diff --git a/.agents/component-scaffold/AGENT.md b/.agents/component-scaffold/AGENT.md
+new file mode 100644
+index 0000000..f117b78
+--- /dev/null
++++ b/.agents/component-scaffold/AGENT.md
+@@ -0,0 +1,111 @@
++# Component Scaffold Main Agent
++
++## 1. Purpose
++
++Create and verify the repository's standard eleven-file benchmark scaffold for one top-level target by invoking the built-in generator exactly once, without implementing or adapting generated contents.
++
++## 2. When to Invoke
++
++Invoke only after migration planning completed successfully, for a kebab-case top-level component whose scaffold and registry entry do not already exist.
++
++## 3. Required Context
++
++- `.agents/shared/core-rules.md`
++- `.agents/shared/handoff-contract.md`
++- `.agents/shared/state-schema.md`
++- `.agents/component-scaffold/AGENT.md`
++- `.migrations/<component>/state.json`
++- `.migrations/<component>/handoffs/migration-planning.md`
++- `.migrations/<component>/plan/file-plan.json`
++- `package.json`
++- `scripts/generate-component.mjs` and its directly imported generator modules
++- `src/benchmark/registry/component-registry.constants.ts` and `component-registry.ts`
++
++## 4. Optional Context
++
++- Other planning artifacts only when needed to confirm the top-level name or expected target path
++- One existing generated component suite only when generator output conventions cannot be verified from the generator itself
++
++## 5. Do Not Load by Default
++
++- Legacy source files or unrelated components
++- Other stage `AGENT.md` files, unselected worker prompts, historical handoffs, and later-stage artifacts
++- Generated file contents for implementation decisions, raw notes, and `.artifacts/`
++
++## 6. Required Prior Artifacts
++
++- `.migrations/<component>/handoffs/migration-planning.md` with `COMPLETED` status
++- Valid `plan/file-plan.json` identifying the same top-level kebab-case component and `src/components/<component>` target
++
++## 7. Sub-Agents Available
++
++- `generator-runner`
++- `folder-structure-verifier`
++- `benchmark-registry-verifier`
++
++## 8. Subagent Delegation Workflow
++
++Use only `.agents/skills/subagent-driven-development/SKILL.md`. Dispatch `generator-runner` once after the main agent's read-only preflight. After it returns, use the minimum verification workers needed; read-only verifiers may run concurrently because they have no writes. The main agent owns integration, state, handoff, and final validation. Never let any worker retry the generator.
++
++## 9. Responsibilities
++
++- Validate the top-level name is kebab-case and absent from both target directory and benchmark registry before invocation.
++- Invoke `npm run generate:component <component>` exactly once for the top-level benchmark target and capture exit/output.
++- Verify all eleven generated files and the registry constant/export path.
++- Confirm generated placeholders compile without modifying their contents.
++
++## 10. Non-Responsibilities
++
++- Running the generator for child components or more than once.
++- Implementing, adapting, formatting, or repairing generated component, data, harness, story, interaction, scenario, or spec contents.
++- Copying legacy UI, creating business data, changing the generator, or invoking Component Tree Migration.
++
++## 11. Execution Flow
++
++1. Validate prior artifacts, exact kebab-case name, generator command, absent target directory, and absent registry member; set stage active in state.
++2. Delegate one invocation of `npm run generate:component <component>`; if it fails, do not retry.
++3. Verify the exact eleven-file inventory and registry update after generation.
++4. Run a compile check without editing generated contents.
++5. Update state, write the canonical handoff, and stop.
++
++## 12. Allowed Modifications
++
++- The generator-created files under `src/components/<component>/{ui,data,harness,test}/`
++- The generator-managed registration in `src/benchmark/registry/component-registry.constants.ts` (re-exported by `component-registry.ts`)
++- `.migrations/<component>/state.json` and `handoffs/component-scaffold.md`
++
++## 13. Forbidden Modifications
++
++- Any external production/legacy source
++- `scripts/generate-component.mjs`, its modules/templates, package manifests, or unrelated registry entries
++- Any child component as a separate benchmark root
++- Manual edits to generated file contents, analysis/plan artifacts, later-stage artifacts, and `.artifacts/`
++
++## 14. Required Outputs
++
++- `data/<component>.data.ts`
++- `data/<component>.factory.ts`
++- `ui/<component>.component.ts`, `ui/<component>.component.html`, and `ui/<component>.component.less`
++- `harness/<component>.container.ts` and `harness/<component>.stories.ts`
++- `test/<component>.spec.ts`, `test/<component>.interactions.ts`, `test/<component>.scenario.constants.ts`, and `test/<component>.scenario.ts`
++- One `BenchmarkComponent` registration in `component-registry.constants.ts`, available through `component-registry.ts`
++- Updated state and `.migrations/<component>/handoffs/component-scaffold.md`
++
++## 15. Validation
++
++- Compare the generated inventory against the exact eleven paths in Section 14; reject extras, omissions, or naming mismatches.
++- Inspect `src/benchmark/registry/component-registry.constants.ts` for exactly one generated enum member and confirm `component-registry.ts` re-exports it.
++- Run `npx tsc --noEmit` (or the repository's equivalent Angular compile check when configured) and require a zero exit code.
++- Verify no other component root, generator source, or generated content was manually modified.
++
++## 16. Definition of Done (DoD)
++
++- [ ] The generator was invoked exactly once, successfully, for the kebab-case top-level target only.
++- [ ] All eleven expected files exist under the four standard folders with exact names.
++- [ ] Exactly one correct benchmark registry member is exported through the registry module.
++- [ ] The untouched generated scaffold passes the compile check.
++- [ ] State and canonical component-scaffold handoff agree; no generated content was implemented.
++
++## 17. Handoff & Failure Behavior
++
++Write `.migrations/<component>/handoffs/component-scaffold.md` in the exact shared contract order and recommend `component-tree-migration` without invoking it. Match status/timestamp to state. On failed invocation or validation, mark `FAILED`, capture output, never rerun or manually repair the scaffold, and stop for human-directed recovery. Missing/conflicting prerequisites are `BLOCKED`. Stop immediately once this DoD is met.
+diff --git a/.agents/component-scaffold/subagents/benchmark-registry-verifier.md b/.agents/component-scaffold/subagents/benchmark-registry-verifier.md
+new file mode 100644
+index 0000000..f0d20c3
+--- /dev/null
++++ b/.agents/component-scaffold/subagents/benchmark-registry-verifier.md
+@@ -0,0 +1,42 @@
++# Benchmark Registry Verifier Sub-Agent
++
++## 1. Goal
++
++Verify the generated component has exactly one correct benchmark registry member and that the public registry module exports it.
++
++## 2. When Parent Should Use It
++
++Use after the one generator invocation succeeds; it may run concurrently with the read-only folder verifier.
++
++## 3. Inputs
++
++- Component kebab/Pascal naming expectation
++- Generator output
++- `src/benchmark/registry/component-registry.constants.ts` and `component-registry.ts`
++
++## 4. Outputs
++
++- Structured return: expected member/value, matches and locations, export result, duplicates, verdict
++
++## 5. Allowed Scope
++
++Read-only inspection of the two registry files and supplied generator output.
++
++## 6. Forbidden Scope
++
++Editing registry entries or exports, rerunning the generator, scanning unrelated implementation, state, and handoffs.
++
++## 7. Procedure
++
++1. Derive the expected enum member/value from existing generator naming rules.
++2. Find exact matches and near-duplicate entries in the constants file.
++3. Confirm `component-registry.ts` re-exports `BenchmarkComponent` from the constants module.
++4. Report discrepancies without repair.
++
++## 8. Checks & Verification
++
++Require exactly one expected member/value, no duplicate value/member, and a valid public re-export.
++
++## 9. Return Condition
++
++Return `COMPLETED` with evidence or `FAILED` with exact locations and expected/actual values; make no edits.
+diff --git a/.agents/component-scaffold/subagents/folder-structure-verifier.md b/.agents/component-scaffold/subagents/folder-structure-verifier.md
+new file mode 100644
+index 0000000..2ec5be2
+--- /dev/null
++++ b/.agents/component-scaffold/subagents/folder-structure-verifier.md
+@@ -0,0 +1,42 @@
++# Folder Structure Verifier Sub-Agent
++
++## 1. Goal
++
++Verify the generated top-level suite has exactly the required eleven files in the standard four folders.
++
++## 2. When Parent Should Use It
++
++Use after the one generator invocation returns successfully.
++
++## 3. Inputs
++
++- Top-level `<component>` name
++- `src/components/<component>/` path
++- Exact expected inventory from the parent
++
++## 4. Outputs
++
++- Structured return: expected paths, present paths, missing paths, unexpected paths, naming violations, verdict
++
++## 5. Allowed Scope
++
++Read-only inspection of `src/components/<component>/` and generator output supplied by the parent.
++
++## 6. Forbidden Scope
++
++Creating, deleting, renaming, formatting, or editing files; inspecting unrelated components; state and handoffs.
++
++## 7. Procedure
++
++1. Enumerate files beneath `data/`, `ui/`, `harness/`, and `test/`.
++2. Compare them to the exact eleven-path inventory.
++3. Verify every basename uses the assigned kebab-case component name.
++4. Report discrepancies without fixing them.
++
++## 8. Checks & Verification
++
++Require two data, three UI, two harness, and four test files, for eleven total, with no unexpected generated files.
++
++## 9. Return Condition
++
++Return `COMPLETED` with a clean structured inventory or `FAILED` with exact missing/unexpected/naming differences; make no edits.
+diff --git a/.agents/component-scaffold/subagents/generator-runner.md b/.agents/component-scaffold/subagents/generator-runner.md
+new file mode 100644
+index 0000000..6fa2255
+--- /dev/null
++++ b/.agents/component-scaffold/subagents/generator-runner.md
+@@ -0,0 +1,43 @@
++# Generator Runner Sub-Agent
++
++## 1. Goal
++
++Invoke the repository scaffold generator exactly once for the assigned top-level component and capture its complete result.
++
++## 2. When Parent Should Use It
++
++Use only after the parent confirms a kebab-case name, completed plan, absent target directory, and absent registry member.
++
++## 3. Inputs
++
++- Exact top-level `<component>` name
++- Repository root and approved command `npm run generate:component <component>`
++- Parent's completed preflight result
++
++## 4. Outputs
++
++- Generator-created eleven-file suite and registry update
++- Structured return: exact command, invocation count, exit code, stdout/stderr summary, files reported, warnings
++
++## 5. Allowed Scope
++
++Only writes performed by the unmodified generator under `src/components/<component>/` and `src/benchmark/registry/component-registry.constants.ts`.
++
++## 6. Forbidden Scope
++
++Dry runs, retries, child targets, manual file/registry edits, generator/package changes, source migration, state, and handoffs.
++
++## 7. Procedure
++
++1. Confirm the parent's exact command and preflight evidence.
++2. Execute `npm run generate:component <component>` once.
++3. Capture exit code and output without rerunning on any outcome.
++4. Report the generator-listed files and registry action to the parent.
++
++## 8. Checks & Verification
++
++Confirm one process invocation occurred and compare reported count to eleven; leave filesystem and compile verification to the dedicated verifiers/parent.
++
++## 9. Return Condition
++
++Return `COMPLETED` only for exit code zero; otherwise `FAILED` with diagnostics and an explicit no-retry statement.
+diff --git a/.agents/migration-planning/AGENT.md b/.agents/migration-planning/AGENT.md
+new file mode 100644
+index 0000000..695427c
+--- /dev/null
++++ b/.agents/migration-planning/AGENT.md
+@@ -0,0 +1,115 @@
++# Migration Planning Main Agent
++
++## 1. Purpose
++
++Translate verified source analysis into a complete, deterministic implementation blueprint: the benchmark-root presentation boundary, strict child-before-parent order, dependency treatments, data contracts, reuse decisions, and exact file operations.
++
++## 2. When to Invoke
++
++Invoke for a component only after Source Analysis completed successfully and all required analysis artifacts are available.
++
++## 3. Required Context
++
++- `.agents/shared/core-rules.md`
++- `.agents/shared/handoff-contract.md`
++- `.agents/shared/state-schema.md`
++- `.agents/migration-planning/AGENT.md`
++- `.migrations/<component>/state.json`
++- `.migrations/<component>/handoffs/source-analysis.md`
++- `.migrations/<component>/analysis/component-tree.json`
++- `.migrations/<component>/analysis/dependencies.json`
++- `.migrations/<component>/analysis/smart-dependencies.json`
++- `.migrations/<component>/analysis/summary.md`
++
++## 4. Optional Context
++
++- Only legacy type/model definitions cited by analysis when needed to resolve an exact contract
++- Relevant existing `src/components/shared/` files for a concrete reuse decision
++- `docs/agents/COMPONENT_BOUNDARIES.md` for an unresolved boundary edge case
++
++## 5. Do Not Load by Default
++
++- Unrelated legacy source or the whole legacy repository
++- Other stage `AGENT.md` files, unselected worker prompts, later-stage artifacts, and historical handoffs
++- Generated implementation contents, tests, raw notes, and `.artifacts/`
++
++## 6. Required Prior Artifacts
++
++- A `COMPLETED` `.migrations/<component>/handoffs/source-analysis.md`
++- Valid and internally consistent `component-tree.json`, `dependencies.json`, `smart-dependencies.json`, and `summary.md`
++
++## 7. Sub-Agents Available
++
++- `dumb-boundary-planner`
++- `component-tree-planner`
++- `shared-component-reuse-planner`
++- `data-contract-planner`
++- `migration-manifest-generator`
++
++## 8. Subagent Delegation Workflow
++
++Use only `.agents/skills/subagent-driven-development/SKILL.md`. Select the minimum planners needed for the analyzed tree; assign exact inputs and separate return/artifact scopes. Concurrency is allowed only for disjoint writes and independent decisions. The main agent resolves conflicts, integrates all outputs, writes `state.json` and the handoff, and owns final plan validation.
++
++## 9. Responsibilities
++
++- Define the smallest complete public presentation boundary for the top-level benchmark component.
++- Map selectors/data reads to typed inputs, control effects to typed outputs or harness actions, environment state to controlled values, and justified pure helpers to preserved/mock treatment.
++- Preserve internally satisfiable nested smart boundaries rather than unnecessarily exposing child contracts at the benchmark root.
++- Produce deterministic strict post-order and a complete source-to-target, operation-by-operation file plan.
++
++## 10. Non-Responsibilities
++
++- Editing legacy source or implementing/copying any Angular component.
++- Running `npm run generate:component`, creating the scaffold, data factories, harnesses, stories, or tests.
++- Refactoring analyzed behavior or invoking Component Scaffold.
++
++## 11. Execution Flow
++
++1. Validate prior handoff and analysis completeness; set planning active in state.
++2. Derive deterministic strict post-order from the rendered tree.
++3. Plan root and internal dependency boundaries, shared reuse, and complete data contracts.
++4. Integrate decisions into `dumb-boundary.json`, `data-contract.json`, `file-plan.json`, and `migration-plan.md`.
++5. Cross-validate every node/dependency/file, update state, write the canonical handoff, and stop.
++
++## 12. Allowed Modifications
++
++- `.migrations/<component>/plan/migration-plan.md`
++- `.migrations/<component>/plan/dumb-boundary.json`
++- `.migrations/<component>/plan/data-contract.json`
++- `.migrations/<component>/plan/file-plan.json`
++- `.migrations/<component>/logs/decisions.md`, `state.json`, and `handoffs/migration-planning.md`
++
++## 13. Forbidden Modifications
++
++- Any legacy/production source
++- `src/components/`, `src/benchmark/`, package/configuration files, and generator scripts
++- Analysis artifacts, scaffold output, later-stage artifacts, and `.artifacts/`
++
++## 14. Required Outputs
++
++- `plan/migration-plan.md`: boundary rationale, internal boundaries, dependency treatments, reuse decisions, post-order, risks, and executable stage guidance
++- `plan/dumb-boundary.json`: every root input/output with exact TypeScript type, source evidence, default/required semantics, and event payload
++- `plan/data-contract.json`: complete root/internal model shapes, relationships, defaults/states, and Zod-ready constraints without fabricated values
++- `plan/file-plan.json`: deterministic ordered nodes and every copy/adapt/create/reuse file operation with source, target, owner stage, dependencies, and verification
++- Updated state and `.migrations/<component>/handoffs/migration-planning.md`
++
++## 15. Validation
++
++- Parse all JSON outputs and ensure deterministic, duplicate-free ordering.
++- Assert every child precedes its parent in `file-plan.json`, with a stable tie-break based on source tree sibling order.
++- Cross-check every analyzed node, source file, smart dependency, public binding, style/asset dependency, and shared candidate has an explicit plan disposition.
++- Verify every public boundary entry and data-contract field has evidence and exact types or an explicit unresolved blocker.
++- Verify no source, `src/components/`, or scaffold file changed.
++
++## 16. Definition of Done (DoD)
++
++- [ ] A complete typed dumb boundary exists for the top-level component.
++- [ ] Every node is scheduled once in deterministic strict post-order, children before parents.
++- [ ] Every smart dependency has a concrete, evidence-backed adaptation treatment.
++- [ ] Reuse versus copy is explicit and fidelity justified.
++- [ ] Data and file plans are complete enough for downstream agents to perform zero architectural rediscovery.
++- [ ] State and canonical handoff agree; no implementation or scaffold work occurred.
++
++## 17. Handoff & Failure Behavior
++
++Write `.migrations/<component>/handoffs/migration-planning.md` using the exact shared contract and recommend `component-scaffold` without invoking it. Match state and handoff status/timestamp. Missing or contradictory analysis that prevents exact planning is `BLOCKED`, not permission to guess; invalid output is `FAILED`. Stop immediately after this DoD.
+diff --git a/.agents/migration-planning/subagents/component-tree-planner.md b/.agents/migration-planning/subagents/component-tree-planner.md
+new file mode 100644
+index 0000000..cc73cbe
+--- /dev/null
++++ b/.agents/migration-planning/subagents/component-tree-planner.md
+@@ -0,0 +1,41 @@
++# Component Tree Planner Sub-Agent
++
++## 1. Goal
++
++Compute the deterministic strict post-order migration sequence for all rendered nodes.
++
++## 2. When Parent Should Use It
++
++Use for every non-empty analyzed component tree before file-plan synthesis.
++
++## 3. Inputs
++
++- `analysis/component-tree.json`
++- Stable node identifiers, sibling order, and conditional/iterative metadata
++
++## 4. Outputs
++
++- Structured ordered node array with node id, source paths, parent, dependencies, ordinal, and traversal evidence
++
++## 5. Allowed Scope
++
++Read the component tree and return the ordered plan fragment; write only an explicitly assigned planning fragment.
++
++## 6. Forbidden Scope
++
++Changing the analyzed tree, choosing component adaptations, editing source/targets, state, and handoffs.
++
++## 7. Procedure
++
++1. Validate one root, unique node identifiers, parent links, and cycle status.
++2. Traverse each child list in recorded render/sibling order.
++3. Emit a node only after all its descendants.
++4. Assign contiguous ordinals and preserve conditional metadata.
++
++## 8. Checks & Verification
++
++Assert every node appears once, every child ordinal is lower than its parent, the root is last, and repeated runs yield identical output.
++
++## 9. Return Condition
++
++Return structured status, ordered array, invariant checks, and blockers such as cycles or unresolved children.
+diff --git a/.agents/migration-planning/subagents/data-contract-planner.md b/.agents/migration-planning/subagents/data-contract-planner.md
+new file mode 100644
+index 0000000..2758619
+--- /dev/null
++++ b/.agents/migration-planning/subagents/data-contract-planner.md
+@@ -0,0 +1,43 @@
++# Data Contract Planner Sub-Agent
++
++## 1. Goal
++
++Define complete TypeScript- and Zod-ready data shapes for every planned UI state without inventing source semantics.
++
++## 2. When Parent Should Use It
++
++Use when analyzed inputs, selectors, service results, nested models, loading/error states, or interactions require generated benchmark data.
++
++## 3. Inputs
++
++- Dependency and smart-dependency analysis
++- Dumb-boundary draft
++- Cited legacy model/type definitions and UI states
++
++## 4. Outputs
++
++- Assigned `plan/data-contract.json` or structured contract fragment
++- Structured return: types, fields, constraints, relationships, state variants, evidence, unresolved items, checks
++
++## 5. Allowed Scope
++
++Read required analysis and cited type definitions; write only the assigned data-contract artifact or return data.
++
++## 6. Forbidden Scope
++
++Implementing TypeScript/Zod/factories, fabricating constraints or sample values, component edits, state, and handoffs.
++
++## 7. Procedure
++
++1. Enumerate data consumed by every planned node and interaction.
++2. Resolve exact field types, nullability, defaults, identity, relationships, and collections from evidence.
++3. Encode loading, empty, populated, error, selection, and other observed states.
++4. Express validation-ready constraints and flag unresolved source facts as blockers.
++
++## 8. Checks & Verification
++
++Cross-check every boundary input and internal template field against the contract; detect orphan fields, missing states, and unsupported constraints.
++
++## 9. Return Condition
++
++Return structured status, contract artifact/fragment, coverage report, blockers, and validation result.
+diff --git a/.agents/migration-planning/subagents/dumb-boundary-planner.md b/.agents/migration-planning/subagents/dumb-boundary-planner.md
+new file mode 100644
+index 0000000..22f8ee5
+--- /dev/null
++++ b/.agents/migration-planning/subagents/dumb-boundary-planner.md
+@@ -0,0 +1,43 @@
++# Dumb Boundary Planner Sub-Agent
++
++## 1. Goal
++
++Specify the complete typed public presentation boundary for the top-level benchmark component.
++
++## 2. When Parent Should Use It
++
++Use when analysis contains root data, control, service, store, router, or environment coupling requiring an explicit boundary.
++
++## 3. Inputs
++
++- Component tree and dependency/smart-dependency analysis
++- Root input/output findings and cited legacy types
++- Parent's boundary constraints
++
++## 4. Outputs
++
++- Assigned `plan/dumb-boundary.json` or structured boundary fragment
++- Structured return: inputs, outputs, retained internal dependencies, evidence, decisions, blockers, checks
++
++## 5. Allowed Scope
++
++Read required analysis and cited type definitions; write only the assigned boundary artifact or return data.
++
++## 6. Forbidden Scope
++
++Source/component edits, scaffold generation, implementation, unrelated contract expansion, state, and handoffs.
++
++## 7. Procedure
++
++1. Trace each root render value and action to its analyzed source.
++2. Convert external data to required/optional typed inputs with defaults and state semantics.
++3. Convert external side effects to typed outputs or explicitly owned harness actions.
++4. Keep nested dependencies internal when they can be satisfied without expanding the root API; document every mapping.
++
++## 8. Checks & Verification
++
++Ensure every analyzed root dependency has exactly one disposition, all types/payloads have evidence, and no avoidable child-only contract leaks into the root.
++
++## 9. Return Condition
++
++Return structured status, boundary artifact/fragment, mapping coverage, decisions, blockers, and validation result.
+diff --git a/.agents/migration-planning/subagents/migration-manifest-generator.md b/.agents/migration-planning/subagents/migration-manifest-generator.md
+new file mode 100644
+index 0000000..2110eea
+--- /dev/null
++++ b/.agents/migration-planning/subagents/migration-manifest-generator.md
+@@ -0,0 +1,43 @@
++# Migration Manifest Generator Sub-Agent
++
++## 1. Goal
++
++Synthesize approved planning fragments into the complete ordered file manifest and human-readable migration plan.
++
++## 2. When Parent Should Use It
++
++Use after boundary, post-order, reuse, and data-contract decisions are stable.
++
++## 3. Inputs
++
++- All four analysis artifacts
++- Approved boundary, post-order, reuse, and data-contract planning fragments
++- Repository target layout conventions
++
++## 4. Outputs
++
++- Assigned `plan/file-plan.json` and `plan/migration-plan.md`
++- Structured return: output paths, coverage counts, unresolved conflicts, checks
++
++## 5. Allowed Scope
++
++Write only `plan/file-plan.json` and `plan/migration-plan.md`; read required analysis/planning artifacts.
++
++## 6. Forbidden Scope
++
++Altering other plan fragments, source/component/scaffold files, implementation, state, decisions log, and handoffs.
++
++## 7. Procedure
++
++1. Preserve the approved strict post-order as the implementation sequence.
++2. Enumerate every source-to-target copy/adapt, create, and reuse operation with owner stage and prerequisites.
++3. Include boundary mappings, styles/assets, internal dependencies, risks, and node verification gates.
++4. Generate deterministic JSON and a concise operational Markdown guide; surface conflicts to the parent.
++
++## 8. Checks & Verification
++
++Verify all analyzed nodes/files/dependencies have dispositions, every operation has exact paths and ownership, children precede parents, and JSON parses.
++
++## 9. Return Condition
++
++Return status, created paths, coverage/check results, and conflicts; the parent performs integration and final validation.
+diff --git a/.agents/migration-planning/subagents/shared-component-reuse-planner.md b/.agents/migration-planning/subagents/shared-component-reuse-planner.md
+new file mode 100644
+index 0000000..4f3c8e2
+--- /dev/null
++++ b/.agents/migration-planning/subagents/shared-component-reuse-planner.md
+@@ -0,0 +1,42 @@
++# Shared Component Reuse Planner Sub-Agent
++
++## 1. Goal
++
++Decide whether each analyzed shared dependency should be reused or copied for full visual and behavioral fidelity.
++
++## 2. When Parent Should Use It
++
++Use when source analysis identifies shared legacy UI or an existing harness candidate.
++
++## 3. Inputs
++
++- Shared dependency analysis and consumers
++- Relevant legacy shared source
++- Relevant existing harness candidate files
++
++## 4. Outputs
++
++- Structured decision matrix: dependency, consumers, reuse/copy decision, source/target, compatibility evidence, deviations, risks
++
++## 5. Allowed Scope
++
++Read relevant analysis, legacy shared files, and existing candidates; return planning data only.
++
++## 6. Forbidden Scope
++
++Copying/refactoring components, declaring reuse without full evidence, dependency installation, source edits, state, and handoffs.
++
++## 7. Procedure
++
++1. Compare API, DOM, classes, styles, assets, interactions, and observable behavior.
++2. Choose reuse only when fidelity is complete for all required consumers.
++3. Otherwise choose copy/adapt of the exact required variant and name its files.
++4. Record evidence and any known deviation.
++
++## 8. Checks & Verification
++
++Ensure every analyzed shared candidate has one decision and every reuse claim covers all fidelity dimensions, not name similarity alone.
++
++## 9. Return Condition
++
++Return structured status, complete decision matrix, unresolved evidence, and verification results.
+diff --git a/.agents/project-bootstrap/AGENT.md b/.agents/project-bootstrap/AGENT.md
+new file mode 100644
+index 0000000..5cb9b03
+--- /dev/null
++++ b/.agents/project-bootstrap/AGENT.md
+@@ -0,0 +1,107 @@
++# Project Bootstrap Main Agent
++
++## 1. Purpose
++
++Prepare shared Storybook rendering infrastructure—presentational dependencies, themes, global Less/CSS, assets, and reusable UI primitives—without migrating the requested benchmark component.
++
++## 2. When to Invoke
++
++Invoke once when onboarding a legacy Angular application, or when its shared visual environment changes. The operator must provide the top-level component name and legacy application root.
++
++## 3. Required Context
++
++- `.agents/shared/core-rules.md`
++- `.agents/shared/handoff-contract.md`
++- `.agents/shared/state-schema.md`
++- `.agents/project-bootstrap/AGENT.md`
++- Legacy `package.json`, Angular workspace configuration, and global style entrypoints
++- `.migrations/<component>/state.json`, if already initialized
++
++## 4. Optional Context
++
++- `.storybook/main.ts` and `.storybook/preview.ts` when styles or static assets must be wired
++- Existing `src/styles/`, `public/`, `src/assets/`, and `src/components/shared/` files relevant to a discovered dependency
++- `docs/agents/WORKFLOW.md` when an operational edge case requires it
++
++## 5. Do Not Load by Default
++
++- Component-specific legacy templates, component trees, or migration plans
++- Other stage `AGENT.md` files or unselected worker prompts
++- Historical handoffs, raw notes, unrelated documentation, and `.artifacts/`
++
++## 6. Required Prior Artifacts
++
++None. If state does not exist, initialize `.migrations/<component>/state.json` from the shared schema before work; do not invent a source path.
++
++## 7. Sub-Agents Available
++
++- `dependency-sync`
++- `theme-migration`
++- `global-styles-migration`
++- `shared-assets-migration`
++- `shared-ui-migration`
++- `storybook-build-verification`
++
++## 8. Subagent Delegation Workflow
++
++Use only `.agents/skills/subagent-driven-development/SKILL.md`. Select the minimum workers needed from evidence in the required context, load a worker prompt only when dispatching it, and give it exact inputs and a disjoint write scope. Workers may run concurrently only when their writes cannot overlap. The main agent owns integration, all `state.json` updates, the handoff, and final validation.
++
++## 9. Responsibilities
++
++- Identify and synchronize only presentation-layer packages compatible with Angular 16.2.12.
++- Reproduce shared theme tokens, resets, typography, global styles, and required static assets.
++- Add only foundational presentational primitives reused by the target tree.
++- Integrate worker results and record meaningful deviations in `.migrations/<component>/logs/decisions.md`.
++
++## 10. Non-Responsibilities
++
++- Migrating the benchmark target or any of its component-specific children.
++- Adding stores, routing, business services, data factories, stories, scenarios, or Playwright specs.
++- Invoking a later migration stage.
++
++## 11. Execution Flow
++
++1. Load required context; validate the component name, legacy root, and state.
++2. Inventory shared visual requirements and select only necessary workers.
++3. Delegate with isolated inputs and disjoint scopes; serialize any overlapping work.
++4. Integrate results, update state through the main agent, and document deviations.
++5. Run repository and Storybook validation, write the canonical handoff, and stop.
++
++## 12. Allowed Modifications
++
++- `package.json` and `package-lock.json` for approved presentational packages
++- `angular.json`, `.storybook/main.ts`, and `.storybook/preview.ts` for global style or asset wiring
++- `src/styles/`, `public/`, `src/assets/`, and `src/components/shared/`
++- `.migrations/<component>/state.json`, `logs/decisions.md`, and `handoffs/project-bootstrap.md`
++
++## 13. Forbidden Modifications
++
++- Any external production or legacy source
++- `src/components/<component>/` and component-specific migration implementation files
++- Angular version changes; NgRx, router, or legacy application monolith dependencies
++- `.artifacts/` and artifacts owned by later stages
++
++## 14. Required Outputs
++
++- Verified shared rendering infrastructure needed by the legacy visual environment
++- Updated `.migrations/<component>/state.json`
++- `.migrations/<component>/handoffs/project-bootstrap.md` using the shared handoff contract
++- Decision entries for every meaningful alteration from production behavior or architecture
++
++## 15. Validation
++
++- Run `npm run build-storybook` and require a zero exit code with no missing module, Less, font, or asset errors.
++- When dependency or Angular configuration changed, also run the repository's available Angular compile check (`npm run build` or `npx ng build`).
++- For an optional dev-server check, run `npm run storybook` only long enough to verify startup and asset resolution, then stop it.
++
++## 16. Definition of Done (DoD)
++
++- [ ] Required presentational dependencies are compatible and installed; no forbidden application coupling was added.
++- [ ] Required global tokens, styles, fonts, and assets resolve in Storybook.
++- [ ] `npm run build-storybook` passes.
++- [ ] State, decisions, and `.migrations/<component>/handoffs/project-bootstrap.md` are complete and mutually consistent.
++- [ ] No benchmark component was migrated.
++
++## 17. Handoff & Failure Behavior
++
++Write the handoff in the exact section order from `.agents/shared/handoff-contract.md`; its status and timestamp must match state. Recommend `source-analysis` but never invoke it. On missing inputs, write `BLOCKED`; on failed validation, write `FAILED`, preserve concise warnings, and stop without advancing stages. Stop immediately once this DoD is satisfied.
+diff --git a/.agents/project-bootstrap/subagents/dependency-sync.md b/.agents/project-bootstrap/subagents/dependency-sync.md
+new file mode 100644
+index 0000000..c333459
+--- /dev/null
++++ b/.agents/project-bootstrap/subagents/dependency-sync.md
+@@ -0,0 +1,43 @@
++# Dependency Sync Sub-Agent
++
++## 1. Goal
++
++Synchronize only missing presentation-layer packages required by the legacy visual environment while preserving Angular 16.2.12.
++
++## 2. When Parent Should Use It
++
++Use when comparison of legacy and harness manifests proves a required UI, icon, or pure utility package is absent.
++
++## 3. Inputs
++
++- Legacy and harness `package.json` files
++- Exact required packages and usages
++- Assigned compatibility and write scope
++
++## 4. Outputs
++
++- Proposed or applied `package.json` and lockfile changes
++- Structured return: package, version, compatibility evidence, files changed, checks, warnings
++
++## 5. Allowed Scope
++
++`package.json` and `package-lock.json` only.
++
++## 6. Forbidden Scope
++
++Angular version changes; NgRx, routers, application stores/services, source components, state, and handoffs.
++
++## 7. Procedure
++
++1. Confirm each package is required by presentation code.
++2. Check Angular 16.2.12 and peer compatibility.
++3. Reuse an installed compatible package when possible; otherwise apply the smallest manifest change.
++4. Install deterministically and capture the result.
++
++## 8. Checks & Verification
++
++Verify lockfile consistency, package resolution, peer output, and the parent-assigned compile command.
++
++## 9. Return Condition
++
++Return `COMPLETED`, `BLOCKED`, or `FAILED` with the structured output; do not update state or integrate other workers' work.
+diff --git a/.agents/project-bootstrap/subagents/global-styles-migration.md b/.agents/project-bootstrap/subagents/global-styles-migration.md
+new file mode 100644
+index 0000000..ec8a92a
+--- /dev/null
++++ b/.agents/project-bootstrap/subagents/global-styles-migration.md
+@@ -0,0 +1,43 @@
++# Global Styles Migration Sub-Agent
++
++## 1. Goal
++
++Migrate required resets, typography, utilities, and global layout styles without importing legacy app-shell behavior.
++
++## 2. When Parent Should Use It
++
++Use when target fidelity depends on shared legacy styles absent from the harness.
++
++## 3. Inputs
++
++- Identified legacy global style entrypoints and imports
++- Relevant harness style configuration
++- Assigned target files
++
++## 4. Outputs
++
++- Minimal global style changes
++- Structured return: retained rules, excluded app-shell rules, files changed, checks, deviations
++
++## 5. Allowed Scope
++
++Assigned `src/styles/` files and, if explicitly assigned, `.storybook/preview.ts` or the `angular.json` styles array.
++
++## 6. Forbidden Scope
++
++Component-specific styles, legacy writes, dependency installation, state, handoffs, and unassigned configuration.
++
++## 7. Procedure
++
++1. Follow the legacy import graph for required shared rules.
++2. Separate visual primitives from router and app-shell layout.
++3. Copy or adapt only required rules while preserving selectors and values.
++4. Wire the entrypoint once and record exclusions.
++
++## 8. Checks & Verification
++
++Run the assigned style/Storybook compilation and check for duplicate imports, unresolved Less references, and global regressions.
++
++## 9. Return Condition
++
++Return structured status, changed files, retained/excluded rule summary, validation, and risks; leave integration to the parent.
+diff --git a/.agents/project-bootstrap/subagents/shared-assets-migration.md b/.agents/project-bootstrap/subagents/shared-assets-migration.md
+new file mode 100644
+index 0000000..90906aa
+--- /dev/null
++++ b/.agents/project-bootstrap/subagents/shared-assets-migration.md
+@@ -0,0 +1,43 @@
++# Shared Assets Migration Sub-Agent
++
++## 1. Goal
++
++Copy only required shared icons, SVGs, images, and fonts and make their Storybook URLs deterministic.
++
++## 2. When Parent Should Use It
++
++Use when source inspection identifies a shared static asset required for faithful rendering.
++
++## 3. Inputs
++
++- Exact read-only legacy asset paths
++- Reference sites and expected URLs
++- Assigned harness destination and Storybook static configuration
++
++## 4. Outputs
++
++- Copied assets and assigned path/font wiring
++- Structured return: source-to-target map, checksums or sizes, URLs checked, files changed, missing assets
++
++## 5. Allowed Scope
++
++Assigned paths under `public/`, `src/assets/`, font-face definitions, and explicitly assigned `.storybook/main.ts` entries.
++
++## 6. Forbidden Scope
++
++Editing or moving legacy assets, bulk-copying unused directories, component migration, state, and handoffs.
++
++## 7. Procedure
++
++1. Confirm every asset has an observed consumer.
++2. Copy binary content without transformation unless directed.
++3. Preserve or deliberately map URLs and font-family names.
++4. Report missing or ambiguous source material.
++
++## 8. Checks & Verification
++
++Verify each destination exists, references resolve from Storybook's static roots, and copied file metadata is plausible.
++
++## 9. Return Condition
++
++Return structured status, mapping, validation, changed files, and missing inputs; never invent replacement assets.
+diff --git a/.agents/project-bootstrap/subagents/shared-ui-migration.md b/.agents/project-bootstrap/subagents/shared-ui-migration.md
+new file mode 100644
+index 0000000..02c0c20
+--- /dev/null
++++ b/.agents/project-bootstrap/subagents/shared-ui-migration.md
+@@ -0,0 +1,43 @@
++# Shared UI Migration Sub-Agent
++
++## 1. Goal
++
++Prepare only proven cross-component presentational primitives needed by downstream migration.
++
++## 2. When Parent Should Use It
++
++Use when analysis of shared infrastructure proves a button, icon, tooltip, or similar dumb primitive is reused and absent or incompatible.
++
++## 3. Inputs
++
++- Exact legacy primitive files and consumers
++- Existing harness shared-component candidates
++- Assigned destination and fidelity requirements
++
++## 4. Outputs
++
++- A compiled shared standalone `OnPush` primitive or a documented reuse decision
++- Structured return: decision, source/target paths, API, files changed, checks, deviations
++
++## 5. Allowed Scope
++
++Only parent-assigned paths under `src/components/shared/`.
++
++## 6. Forbidden Scope
++
++Benchmark-target components, smart services/store/router coupling, stories, data, tests, state, handoffs, and legacy writes.
++
++## 7. Procedure
++
++1. Compare existing candidates against DOM, styles, and behavior.
++2. Reuse only on complete fidelity; otherwise copy the required source variant.
++3. Adapt the primitive to standalone `OnPush` and explicit presentation bindings.
++4. Preserve source fidelity before cleanup and report deviations.
++
++## 8. Checks & Verification
++
++Run the narrow compile check and inspect metadata, imports, template/style resolution, and absence of application coupling.
++
++## 9. Return Condition
++
++Return structured status, reuse/copy rationale, changed files, checks, and deviations for parent review.
+diff --git a/.agents/project-bootstrap/subagents/storybook-build-verification.md b/.agents/project-bootstrap/subagents/storybook-build-verification.md
+new file mode 100644
+index 0000000..9818cd1
+--- /dev/null
++++ b/.agents/project-bootstrap/subagents/storybook-build-verification.md
+@@ -0,0 +1,42 @@
++# Storybook Build Verification Sub-Agent
++
++## 1. Goal
++
++Perform read-only verification that shared bootstrap infrastructure builds and resolves styles and assets.
++
++## 2. When Parent Should Use It
++
++Use after all selected bootstrap changes are integrated and no writer is still active.
++
++## 3. Inputs
++
++- Integrated worktree revision
++- Expected style, token, font, asset, and dependency changes
++- Parent-selected validation commands
++
++## 4. Outputs
++
++- Structured return: commands, exit codes, concise diagnostics, missing resources, final verdict
++
++## 5. Allowed Scope
++
++Read-only repository inspection and ephemeral command output.
++
++## 6. Forbidden Scope
++
++Any source, configuration, state, handoff, dependency, or artifact modification; no attempted fixes.
++
++## 7. Procedure
++
++1. Run `npm run build-storybook`.
++2. Inspect output for missing modules, Less failures, and asset/font resolution warnings.
++3. Run only additional read-only checks assigned by the parent.
++4. Isolate actionable diagnostics by file and command.
++
++## 8. Checks & Verification
++
++Require zero exit code and report whether every expected shared resource was covered; do not treat suppressed errors as success.
++
++## 9. Return Condition
++
++Return `COMPLETED` only for a clean build; otherwise return `FAILED` with exact diagnostics and make no edits.
+diff --git a/.agents/project-bootstrap/subagents/theme-migration.md b/.agents/project-bootstrap/subagents/theme-migration.md
+new file mode 100644
+index 0000000..86f7d35
+--- /dev/null
++++ b/.agents/project-bootstrap/subagents/theme-migration.md
+@@ -0,0 +1,43 @@
++# Theme Migration Sub-Agent
++
++## 1. Goal
++
++Reproduce required legacy palettes, typography, elevation, and light/dark theme tokens in the harness.
++
++## 2. When Parent Should Use It
++
++Use when legacy components consume theme variables or CSS custom properties not already available globally.
++
++## 3. Inputs
++
++- Legacy theme sources and token usages
++- Existing harness theme files
++- Exact assigned target files
++
++## 4. Outputs
++
++- Theme token files and wiring within scope
++- Structured return: mapped tokens, unresolved tokens, files changed, checks, deviations
++
++## 5. Allowed Scope
++
++Assigned files under `src/styles/themes/` and, only if assigned, `.storybook/preview.ts` or a global style entrypoint.
++
++## 6. Forbidden Scope
++
++Legacy writes, component migration, dependencies, state, handoffs, and files outside the assignment.
++
++## 7. Procedure
++
++1. Trace every required token to its legacy definition.
++2. Preserve names and values where the harness supports them.
++3. Add minimal Less/CSS-variable definitions and assigned global wiring.
++4. Report any necessary deviation rather than silently substituting values.
++
++## 8. Checks & Verification
++
++Compile Less, search for unresolved required tokens, and verify both applicable theme modes.
++
++## 9. Return Condition
++
++Return status plus mapped/unresolved token lists, changed files, validation evidence, and deviations for parent integration.
+diff --git a/.agents/source-analysis/AGENT.md b/.agents/source-analysis/AGENT.md
+new file mode 100644
+index 0000000..532b79d
+--- /dev/null
++++ b/.agents/source-analysis/AGENT.md
+@@ -0,0 +1,115 @@
++# Source Analysis Main Agent
++
++## 1. Purpose
++
++Perform a strictly read-only analysis of the legacy benchmark root and its complete rendered tree, discovering nodes top-down and classifying every dependency for deterministic downstream planning.
++
++## 2. When to Invoke
++
++Invoke for a named top-level component after project bootstrap is complete and the operator supplies a resolvable legacy source path.
++
++## 3. Required Context
++
++- `.agents/shared/core-rules.md`
++- `.agents/shared/handoff-contract.md`
++- `.agents/shared/state-schema.md`
++- `.agents/source-analysis/AGENT.md`
++- `.migrations/<component>/state.json`
++- `.migrations/<component>/handoffs/project-bootstrap.md`
++- The root legacy component TypeScript, template, and component style files
++
++## 4. Optional Context
++
++- Legacy declarations/import metadata and only those source files reached while resolving rendered selectors, pipes, directives, services, styles, or assets
++- Existing `src/components/shared/` candidates when classifying reuse possibilities
++- `docs/agents/COMPONENT_TREE_MIGRATION.md` or `docs/agents/COMPONENT_BOUNDARIES.md` for an encountered edge case
++
++## 5. Do Not Load by Default
++
++- Unrelated legacy features or the whole legacy repository
++- Other stage `AGENT.md` files, unselected worker prompts, later-stage artifacts, and old handoffs
++- Generated benchmark targets, raw historical notes, and `.artifacts/`
++
++## 6. Required Prior Artifacts
++
++- `.migrations/<component>/state.json` with a valid `sourcePath`
++- `.migrations/<component>/handoffs/project-bootstrap.md` with `COMPLETED` status
++
++## 7. Sub-Agents Available
++
++- `component-tree-analyzer`
++- `smart-dependency-analyzer`
++- `child-component-analyzer`
++- `ngrx-dependency-analyzer`
++- `service-dependency-analyzer`
++- `input-output-analyzer`
++- `style-dependency-analyzer`
++- `shared-dependency-analyzer`
++
++## 8. Subagent Delegation Workflow
++
++Use only `.agents/skills/subagent-driven-development/SKILL.md`. Begin with the minimum worker needed to discover the rendered tree top-down, then select other workers from evidence in that tree. Give each worker explicit nodes, inputs, and an isolated output or return-only scope. Permit concurrency only for disjoint files and never concurrent `state.json` edits. The main agent integrates all analysis, updates state, writes the handoff, and performs final validation.
++
++## 9. Responsibilities
++
++- Resolve every rendered child selector recursively from root to leaves, including conditional and iterative rendering.
++- Inventory imports, public bindings, local state, lifecycle/async behavior, services, store usage, pipes, directives, packages, styles, tokens, and assets.
++- Classify dependencies as Presentation, Data, Application Control, or Environment and cite file-level evidence.
++- Catalog missing source, ambiguity, complexity, and fidelity risks without inventing facts.
++
++## 10. Non-Responsibilities
++
++- Modifying any legacy file or any file under `src/components/`.
++- Choosing the final dumb boundary or implementation order.
++- Copying components, running the scaffold generator, creating data, stories, harnesses, or tests.
++- Invoking migration planning.
++
++## 11. Execution Flow
++
++1. Validate prerequisites and root source; set this stage active in state.
++2. Discover the rendered tree top-down, resolving each child before analyzing the next depth.
++3. Delegate evidence-based dependency audits for the discovered node set.
++4. Integrate worker findings into the four canonical analysis artifacts and resolve duplicate/conflicting entries.
++5. Validate coverage and JSON/Markdown, update state, write the handoff, and stop.
++
++## 12. Allowed Modifications
++
++- `.migrations/<component>/analysis/component-tree.json`
++- `.migrations/<component>/analysis/dependencies.json`
++- `.migrations/<component>/analysis/smart-dependencies.json`
++- `.migrations/<component>/analysis/summary.md`
++- `.migrations/<component>/logs/decisions.md` only for meaningful analysis-stage decisions
++- `.migrations/<component>/state.json` and `handoffs/source-analysis.md`
++
++## 13. Forbidden Modifications
++
++- The external production/legacy repository
++- `src/components/`, shared infrastructure, package manifests, Storybook configuration, and generator files
++- Planning/scaffold artifacts, later-stage files, and `.artifacts/`
++
++## 14. Required Outputs
++
++- `analysis/component-tree.json`: deterministic hierarchical nodes, source paths, depth, render order, and conditional/iterative flags
++- `analysis/dependencies.json`: complete per-node imports, inputs/outputs, services, pipes, directives, packages, styles, assets, async patterns, and lifecycle inventory
++- `analysis/smart-dependencies.json`: evidence-backed category and downstream treatment candidates for every application boundary
++- `analysis/summary.md`: complexity, missing inputs, risks, and coverage summary
++- Updated state and `.migrations/<component>/handoffs/source-analysis.md`
++
++## 15. Validation
++
++- Parse all three JSON artifacts and verify stable ordering and repository-relative paths where applicable.
++- Cross-check every rendered selector in each inspected template against a child node or an explicitly classified external/native element.
++- Cross-check every discovered node appears in the dependency inventory and every smart dependency has evidence and one of the four required categories.
++- Verify `git diff -- <legacy-root>` is empty and no `src/components/` files changed during the stage.
++
++## 16. Definition of Done (DoD)
++
++- [ ] The complete rendered tree is mapped top-down to leaf primitives with conditional/iterative behavior.
++- [ ] Every discovered dependency is inventoried and classified as Presentation, Data, Application Control, or Environment.
++- [ ] Inputs, outputs, local state, async rendering, lifecycle hooks, styles, tokens, assets, and missing source are documented.
++- [ ] All analysis artifacts validate and fidelity risks are explicit.
++- [ ] State and canonical source-analysis handoff agree; no source or component migration occurred.
++
++## 17. Handoff & Failure Behavior
++
++Write `.migrations/<component>/handoffs/source-analysis.md` in the exact shared contract order and recommend `migration-planning` without invoking it. Match handoff status/timestamp to state. If source or a required child cannot be resolved, record the exact gap, mark `BLOCKED`, and stop; if validation fails, mark `FAILED`. Stop immediately once this DoD is met.
+diff --git a/.agents/source-analysis/subagents/child-component-analyzer.md b/.agents/source-analysis/subagents/child-component-analyzer.md
+new file mode 100644
+index 0000000..cf6b7eb
+--- /dev/null
++++ b/.agents/source-analysis/subagents/child-component-analyzer.md
+@@ -0,0 +1,42 @@
++# Child Component Analyzer Sub-Agent
++
++## 1. Goal
++
++Inspect assigned discovered child nodes for metadata, local state, rendering behavior, and complexity.
++
++## 2. When Parent Should Use It
++
++Use when a discovered child requires deeper inspection than the tree and cross-cutting audits provide.
++
++## 3. Inputs
++
++- Exact child node identifiers and source files
++- Their parent/tree context
++- Questions or fields the parent needs completed
++
++## 4. Outputs
++
++- Structured per-node metadata for parent integration: metadata, bindings, local state, hooks, render conditions, complexity, risks, files read
++
++## 5. Allowed Scope
++
++Read only assigned legacy child files and their directly referenced templates/styles.
++
++## 6. Forbidden Scope
++
++Unassigned siblings, legacy edits, artifact integration, planning, `src/components/`, state, and handoffs.
++
++## 7. Procedure
++
++1. Verify selector, metadata, template, and style references.
++2. Trace local fields and methods into template behavior.
++3. Record standalone/change-detection status, hooks, subscriptions, conditions, and repeated regions.
++4. Return evidence and risks; escalate newly rendered selectors to the parent.
++
++## 8. Checks & Verification
++
++Confirm every reported behavior cites an assigned file and every new selector or dependency is surfaced for tree/inventory integration.
++
++## 9. Return Condition
++
++Return `COMPLETED`, `BLOCKED`, or `FAILED` with the exact node set, structured findings, gaps, and checks; write no shared artifact.
+diff --git a/.agents/source-analysis/subagents/component-tree-analyzer.md b/.agents/source-analysis/subagents/component-tree-analyzer.md
+new file mode 100644
+index 0000000..c81f0ba
+--- /dev/null
++++ b/.agents/source-analysis/subagents/component-tree-analyzer.md
+@@ -0,0 +1,43 @@
++# Component Tree Analyzer Sub-Agent
++
++## 1. Goal
++
++Discover the complete rendered component tree deterministically from parent to child.
++
++## 2. When Parent Should Use It
++
++Use first for every source-analysis run and again only when integration exposes an unresolved rendered selector.
++
++## 3. Inputs
++
++- Root component TypeScript, template, and declaration/import context
++- Legacy source root and component name
++- Existing partial tree, if resuming
++
++## 4. Outputs
++
++- Assigned `analysis/component-tree.json` or a structured tree fragment for parent integration
++- Structured return: visited nodes, unresolved selectors, files read, output path, checks
++
++## 5. Allowed Scope
++
++Read legacy metadata/templates; write only the parent-assigned tree artifact or return-only output.
++
++## 6. Forbidden Scope
++
++Legacy edits, dependency classification beyond selector resolution, `src/components/`, state, handoffs, and any unassigned artifact.
++
++## 7. Procedure
++
++1. Record the root with source paths and depth zero.
++2. Inspect its template in render order for custom selectors, dynamic outlets, structural conditions, and iterations.
++3. Resolve each rendered child definition and recurse before proceeding to deeper analyses.
++4. Emit stable sibling ordering, depth, conditions, and unresolved evidence without inventing nodes.
++
++## 8. Checks & Verification
++
++Re-scan every visited template; each rendered custom selector must map to one child node or an explicit unresolved/external record, and cycles must be identified.
++
++## 9. Return Condition
++
++Return status plus the structured tree location/fragment, visited files, unresolved selectors, and verification result.
+diff --git a/.agents/source-analysis/subagents/input-output-analyzer.md b/.agents/source-analysis/subagents/input-output-analyzer.md
+new file mode 100644
+index 0000000..aa510c9
+--- /dev/null
++++ b/.agents/source-analysis/subagents/input-output-analyzer.md
+@@ -0,0 +1,41 @@
++# Input Output Analyzer Sub-Agent
++
++## 1. Goal
++
++Extract the existing public bindings and all template-facing event/data flows for assigned nodes.
++
++## 2. When Parent Should Use It
++
++Use when the discovered tree contains Angular inputs, outputs, model bindings, host bindings/listeners, or parent-child binding expressions.
++
++## 3. Inputs
++
++- Assigned node TypeScript and templates
++- Parent-child relationships from the component tree
++
++## 4. Outputs
++
++- Structured map of inputs, outputs, aliases, types, required/default values, payloads, two-way bindings, and binding evidence
++
++## 5. Allowed Scope
++
++Read assigned legacy component files and return structured findings only.
++
++## 6. Forbidden Scope
++
++Changing APIs, inventing types/defaults, planning the dumb boundary, editing artifacts/source/state/handoffs.
++
++## 7. Procedure
++
++1. Extract decorator- and metadata-declared bindings.
++2. Resolve types, aliases, initializers, transforms, and emitter payloads.
++3. Map parent binding expressions and handlers to each child API.
++4. Record template-facing fields/events not declared as public bindings separately.
++
++## 8. Checks & Verification
++
++Cross-check TypeScript declarations against every property, event, and two-way binding on discovered custom selectors.
++
++## 9. Return Condition
++
++Return structured status, per-node binding map, unresolved types, files inspected, and check results.
+diff --git a/.agents/source-analysis/subagents/ngrx-dependency-analyzer.md b/.agents/source-analysis/subagents/ngrx-dependency-analyzer.md
+new file mode 100644
+index 0000000..7935528
+--- /dev/null
++++ b/.agents/source-analysis/subagents/ngrx-dependency-analyzer.md
+@@ -0,0 +1,42 @@
++# NgRx Dependency Analyzer Sub-Agent
++
++## 1. Goal
++
++Find and describe every NgRx store read, selector, dispatch, action, and observable state dependency in assigned nodes.
++
++## 2. When Parent Should Use It
++
++Use when imports, injections, decorators, or templates indicate NgRx coupling.
++
++## 3. Inputs
++
++- Assigned component TypeScript/templates
++- Directly referenced selectors, actions, and model definitions needed to determine shapes
++- Node identifiers
++
++## 4. Outputs
++
++- Structured findings: node, selector/state shape, dispatch/action payload, async/template consumption, evidence, uncertainty
++
++## 5. Allowed Scope
++
++Read assigned legacy components and directly referenced NgRx declarations; return findings only.
++
++## 6. Forbidden Scope
++
++Executing the legacy app, editing source, choosing final input/output APIs, installing NgRx, writing artifacts/state/handoffs.
++
++## 7. Procedure
++
++1. Locate `Store` injection and all `select`, `dispatch`, selector, and action references.
++2. Trace types/defaults and template consumption as far as available source permits.
++3. Record timing, subscriptions, `async` use, and payload construction.
++4. Flag unresolved inferred shapes instead of fabricating them.
++
++## 8. Checks & Verification
++
++Search assigned files for NgRx imports and common store operations; account for every match in findings or an explicit non-runtime exclusion.
++
++## 9. Return Condition
++
++Return structured status, complete inventory, files searched, unresolved types, and verification result.
+diff --git a/.agents/source-analysis/subagents/service-dependency-analyzer.md b/.agents/source-analysis/subagents/service-dependency-analyzer.md
+new file mode 100644
+index 0000000..ce3640f
+--- /dev/null
++++ b/.agents/source-analysis/subagents/service-dependency-analyzer.md
+@@ -0,0 +1,42 @@
++# Service Dependency Analyzer Sub-Agent
++
++## 1. Goal
++
++Audit injected services and tokens, their calls, returned data, and side effects across assigned nodes.
++
++## 2. When Parent Should Use It
++
++Use when constructors, `inject()`, `@Inject()`, providers, or method calls reveal service coupling.
++
++## 3. Inputs
++
++- Assigned component files and node identifiers
++- Direct service interfaces/implementations needed to classify observed calls
++- Known analysis boundaries
++
++## 4. Outputs
++
++- Structured findings: service/token, node, call, data/side effect, category, candidate replacement, evidence, uncertainty
++
++## 5. Allowed Scope
++
++Read assigned legacy components and only directly referenced service declarations; return findings only.
++
++## 6. Forbidden Scope
++
++Running external effects, editing providers/source, mocking or implementing replacements, artifacts, state, and handoffs.
++
++## 7. Procedure
++
++1. Inventory constructor, field, and token injection.
++2. Trace each used member and observable/promise result.
++3. Distinguish pure UI helpers, data providers, application control, and environment access.
++4. Record candidate retain/input/output/mock treatment as analysis, not a final design.
++
++## 8. Checks & Verification
++
++Account for every injection and call site in assigned files; cite evidence and flag unavailable implementations.
++
++## 9. Return Condition
++
++Return structured status, findings, searched files, missing definitions, and verification result without edits.
+diff --git a/.agents/source-analysis/subagents/shared-dependency-analyzer.md b/.agents/source-analysis/subagents/shared-dependency-analyzer.md
+new file mode 100644
+index 0000000..99f833d
+--- /dev/null
++++ b/.agents/source-analysis/subagents/shared-dependency-analyzer.md
+@@ -0,0 +1,42 @@
++# Shared Dependency Analyzer Sub-Agent
++
++## 1. Goal
++
++Inventory external packages and shared UI dependencies and identify evidence-based harness reuse candidates.
++
++## 2. When Parent Should Use It
++
++Use when discovered nodes import third-party libraries or legacy shared components/pipes/directives.
++
++## 3. Inputs
++
++- Assigned imports and resolved shared dependency files
++- Relevant existing `src/components/shared/` candidates and harness manifest
++- Node identifiers
++
++## 4. Outputs
++
++- Structured findings: dependency, consumers, installed status, candidate reuse/copy/new-package option, compatibility evidence, fidelity risks
++
++## 5. Allowed Scope
++
++Read assigned legacy dependencies, harness manifest, and relevant existing shared candidates; return findings only.
++
++## 6. Forbidden Scope
++
++Installing packages, copying components, final reuse decisions, source edits, artifacts/state/handoffs.
++
++## 7. Procedure
++
++1. Normalize package, shared component, directive, and pipe imports.
++2. Identify every consumer and actual used API.
++3. Compare relevant existing harness candidates for API, DOM, style, and behavior compatibility.
++4. Report evidence and gaps without deciding downstream implementation.
++
++## 8. Checks & Verification
++
++Account for each assigned non-local/shared import and verify candidate claims against concrete source and harness files.
++
++## 9. Return Condition
++
++Return structured status, dependency/reuse matrix, inspected paths, uncertainties, and check results.
+diff --git a/.agents/source-analysis/subagents/smart-dependency-analyzer.md b/.agents/source-analysis/subagents/smart-dependency-analyzer.md
+new file mode 100644
+index 0000000..302922b
+--- /dev/null
++++ b/.agents/source-analysis/subagents/smart-dependency-analyzer.md
+@@ -0,0 +1,43 @@
++# Smart Dependency Analyzer Sub-Agent
++
++## 1. Goal
++
++Classify application boundaries across the discovered tree with evidence and downstream treatment candidates.
++
++## 2. When Parent Should Use It
++
++Use after a stable node list exists and imports or behavior indicate data, control, or environment coupling.
++
++## 3. Inputs
++
++- `analysis/component-tree.json`
++- Assigned node source files
++- Dependency findings from specialist workers, when available
++
++## 4. Outputs
++
++- Assigned `analysis/smart-dependencies.json` or a structured fragment
++- Structured return: dependency, node, evidence, category, candidate treatment, uncertainties, checks
++
++## 5. Allowed Scope
++
++Read assigned legacy files and analysis artifacts; write only the assigned smart-dependency artifact or return data.
++
++## 6. Forbidden Scope
++
++Source edits, migration design decisions, public contract creation, `src/components/`, state, and handoffs.
++
++## 7. Procedure
++
++1. Enumerate non-presentational reads, writes, injections, globals, and side effects.
++2. Cite source path and symbol/use evidence.
++3. Classify each as Presentation, Data, Application Control, or Environment.
++4. Suggest `@Input`, `@Output`, mock, controlled value, preserve, or further analysis without finalizing the plan.
++
++## 8. Checks & Verification
++
++Ensure each entry has one valid category, evidence, affected nodes, and no unsupported treatment claim; reconcile duplicate symbols.
++
++## 9. Return Condition
++
++Return structured status, artifact/fragment, counts by category, ambiguities, and validation result.
+diff --git a/.agents/source-analysis/subagents/style-dependency-analyzer.md b/.agents/source-analysis/subagents/style-dependency-analyzer.md
+new file mode 100644
+index 0000000..d9ea2a6
+--- /dev/null
++++ b/.agents/source-analysis/subagents/style-dependency-analyzer.md
+@@ -0,0 +1,41 @@
++# Style Dependency Analyzer Sub-Agent
++
++## 1. Goal
++
++Trace component style files, imports, mixins, global selectors, variables, theme tokens, assets, and encapsulation assumptions.
++
++## 2. When Parent Should Use It
++
++Use for every node with `styles`/`styleUrls` or template classes whose appearance depends on shared styles.
++
++## 3. Inputs
++
++- Assigned component metadata, templates, and style files
++- Relevant global/theme entrypoints reached by imports or token definitions
++
++## 4. Outputs
++
++- Structured findings: node, stylesheet graph, mixins/tokens, global classes, assets, encapsulation, missing files, fidelity risks
++
++## 5. Allowed Scope
++
++Read assigned legacy styles and directly resolved imports/assets; return findings only.
++
++## 6. Forbidden Scope
++
++Copying or changing styles/assets, broad legacy scans, component migration, artifacts/state/handoffs.
++
++## 7. Procedure
++
++1. Resolve all component style references and recursive imports.
++2. Inventory mixins, variables, CSS custom properties, URLs, fonts, and global-class dependencies.
++3. Map template classes to local/global rules and note encapsulation behavior.
++4. Report missing imports or ambiguous cascade dependencies exactly.
++
++## 8. Checks & Verification
++
++Ensure every style import and asset URL resolves or is explicitly missing, and every reported token has a definition or gap record.
++
++## 9. Return Condition
++
++Return structured status, dependency graph/findings, missing inputs, files inspected, and verification result.
+diff --git a/.superpowers/sdd/prompt.txt/task-3-report.md b/.superpowers/sdd/prompt.txt/task-3-report.md
+new file mode 100644
+index 0000000..1de637c
+--- /dev/null
++++ b/.superpowers/sdd/prompt.txt/task-3-report.md
+@@ -0,0 +1,99 @@
++# Task 3 Implementation Report
++
++## Status
++
++DONE
++
++## Scope Implemented
++
++Created the complete Phase 3 stage-prompt inventory:
++
++- `.agents/project-bootstrap/AGENT.md` and six specified workers
++- `.agents/source-analysis/AGENT.md` and eight specified workers
++- `.agents/migration-planning/AGENT.md` and five specified workers
++- `.agents/component-scaffold/AGENT.md` and three specified workers
++
++No component migration, source modification, scaffold invocation, or later-stage implementation was performed.
++
++## Main-Agent Contract
++
++Each of the four main agents uses the exact Module 02 17-section heading order. Each prompt:
++
++- separates Required Context, Optional Context, and Do Not Load by Default;
++- delegates only through `.agents/skills/subagent-driven-development/SKILL.md`;
++- selects the minimum evidence-backed workers and permits concurrent work only for disjoint writes;
++- leaves integration, `state.json`, handoff creation, and final validation with the main agent;
++- declares allowed/forbidden modifications, concrete outputs, validation, DoD, and failure behavior;
++- recommends but never invokes the next stage, and stops after its own DoD.
++
++## Worker Contract
++
++All 22 worker prompts use the exact Module 02 9-section heading order and define:
++
++- a narrow goal and parent selection condition;
++- exact input and structured-output contracts;
++- allowed and forbidden scope;
++- an operational procedure and immediate checks;
++- a terminal structured return to the parent without owning shared state or handoff integration.
++
++## Stage-Specific Results
++
++### Project Bootstrap
++
++- Treats production source as read-only and limits writes to shared rendering infrastructure.
++- Uses the ruled canonical handoff path `.migrations/<component>/handoffs/project-bootstrap.md`.
++- Uses `npm run build-storybook`; the nonexistent `npm run build:storybook` is absent.
++- Prevents benchmark-target migration and application-layer dependency import.
++
++### Source Analysis
++
++- Keeps legacy source strictly read-only.
++- Requires top-down rendered-tree discovery before specialist analysis.
++- Produces the four canonical analysis artifacts and evidence-backed Presentation/Data/Application Control/Environment classifications.
++- Explicitly forbids component copying, planning decisions, and scaffold work.
++
++### Migration Planning
++
++- Requires deterministic strict post-order, with stable sibling order and children before parents.
++- Requires complete typed root/internal boundary treatment, data contracts, reuse/copy decisions, and source-to-target file operations.
++- Cross-checks every analyzed node and dependency so downstream implementation requires no architectural rediscovery.
++- Explicitly forbids implementation and scaffold generation.
++
++### Component Scaffold
++
++- Performs a read-only absence/name preflight before one generator invocation.
++- Runs `npm run generate:component <component>` exactly once for the top-level target and forbids dry runs, retries, and child roots.
++- Verifies the actual eleven-file generator inventory: two data, three UI, two harness, and four test files.
++- Verifies the generator-managed `component-registry.constants.ts` member and its public re-export through `component-registry.ts`.
++- Forbids manual implementation or repair of generated contents.
++
++## Validation Evidence
++
++1. Inventory and section-order check (PowerShell over the four stage roots):
++   - Result: `mains=4 workers=22 total=26`.
++   - Result: every main reported 17 sections in the exact `1..17` order.
++   - Result: every worker reported 9 sections in the exact `1..9` order.
++2. Exact worker-name/reference and static-path check:
++   - Result: `PASS: 4 mains, 22 exact workers, ordered 17/9 sections, worker references and static paths valid`.
++   - Confirmed the SDD skill, generator, and registry constants paths exist.
++3. Command ruling search:
++   - `rg -n "build:storybook|generate:component.*generate:component" ...`
++   - Result: no forbidden Storybook command or duplicated generator command pattern found.
++   - Required searches found `npm run build-storybook` and `npm run generate:component <component>` in their owning stages.
++4. Markdown whitespace check:
++   - `rg -n "[ \\t]+$" ...`
++   - Result: no trailing whitespace found.
++5. Scope inspection:
++   - Task-target status contained only the four new stage directories before this report.
++   - No migration source, `src/components/`, or `.migrations/` implementation was created or modified by Task 3.
++
++## Self-Review
++
++- Compared the stage prompts against Modules 04–06, the exact Module 02 templates, shared core rules, state schema, handoff contract, the existing SDD skill, and the repository's current eleven-file generator implementation.
++- Preserved the current registry architecture by checking the generator-managed constants file plus public registry re-export rather than claiming the barrel file itself is directly mutated.
++- Kept prompts compact while retaining exact ownership, prerequisites, outputs, failure states, and stop conditions.
++- Preserved all unrelated dirty worktree changes.
++
++## Concerns
++
++None.
+-- 
+2.55.0.windows.1
+

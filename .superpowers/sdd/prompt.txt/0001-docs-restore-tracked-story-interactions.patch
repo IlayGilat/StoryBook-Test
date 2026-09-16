@@ -1,0 +1,69 @@
+From af9e366980f2f565ec9de805a263afa10fb6956f Mon Sep 17 00:00:00 2001
+From: GILAT ILAY <ILAYGIL@rafael.co.il>
+Date: Tue, 15 Sep 2026 16:18:08 +0300
+Subject: [PATCH] docs: restore tracked story interactions
+
+---
+ .agents/skills/create-storybook-story/SKILL.md | 12 +++++++-----
+ docs/agents/WORKFLOW.md                        |  4 ++--
+ 2 files changed, 9 insertions(+), 7 deletions(-)
+
+diff --git a/.agents/skills/create-storybook-story/SKILL.md b/.agents/skills/create-storybook-story/SKILL.md
+index 5fafc54..f7bd417 100644
+--- a/.agents/skills/create-storybook-story/SKILL.md
++++ b/.agents/skills/create-storybook-story/SKILL.md
+@@ -11,12 +11,12 @@ Use during the Harness stage after the container and deterministic data are read
+ 
+ ## Inputs
+ 
+-- Harness component, required data-volume variants, and existing `src/components/*/harness/*.stories.ts` examples.
++- Harness component, required data-volume variants, measured interaction names, and existing `src/components/*/harness/*.stories.ts` examples.
+ 
+ ## Outputs
+ 
+ - `src/components/<component>/harness/<component>.stories.ts`.
+-- Storybook render validation evidence for the Harness handoff.
++- Storybook render and measured `play` interaction evidence for the Harness handoff.
+ 
+ ## Procedure
+ 
+@@ -24,15 +24,17 @@ Use during the Harness stage after the container and deterministic data are read
+ 2. Set `parameters: { layout: 'fullscreen' }` and deterministic default args, including dataset size when exposed.
+ 3. Register only necessary presentation providers/decorators.
+ 4. Define required stories/states without duplicating application services.
+-5. Build/open each story and verify readiness and console cleanliness.
+-6. Leave registry, performance-tracker, paint-cycle, sizing-event, and benchmark-configuration integration verification to Benchmark Integration.
++5. Wrap every measured CSF3 `play` interaction in `window.__storybookPerfTracker.runInteraction(...)`; unmeasured setup may remain outside the wrapper.
++6. Build/open each story and verify readiness, console cleanliness, and measured interaction completion.
++7. Leave tracker wiring/registration plus registry, paint-cycle, sizing-event, and benchmark-configuration verification to Benchmark Integration; Test consumes the tracked interactions.
+ 
+ ## Constraints
+ 
+ - Do not target the dumb UI component directly for benchmark stories.
++- Do not bypass the global tracker for a measured `play` interaction or duplicate tracker registration in the story.
+ - Do not use nondeterministic loaders, network calls, arbitrary delays, or app-wide decorators.
+ - Do not change unrelated stories.
+ 
+ ## Stop conditions
+ 
+-Stop when Storybook builds and every required fullscreen harness variant renders cleanly and reaches ready state.
++Stop when Storybook builds, every required fullscreen harness variant renders cleanly and reaches ready state, and every measured `play` interaction calls the global tracker.
+diff --git a/docs/agents/WORKFLOW.md b/docs/agents/WORKFLOW.md
+index ab4396c..89260e2 100644
+--- a/docs/agents/WORKFLOW.md
++++ b/docs/agents/WORKFLOW.md
+@@ -10,9 +10,9 @@ Run one stage at a time. Replace `<component>` with the kebab-case benchmark roo
+ | 4 | `Use the Component Scaffold Agent for <component>.` | Approved plan and file plan | One `npm run generate:component <component>` invocation for the root only; scaffold handoff |
+ | 5 | `Use the Component Tree Migration Agent for <component>.` | Scaffold plus tree and plan | UI nodes adapted in strict post-order, node validation evidence, tree-migration handoff |
+ | 6 | `Use the Data Agent for <component>.` | Data contract and migrated UI bindings | TypeScript types, Zod schema, deterministic data factory, data handoff |
+-| 7 | `Use the Harness Agent for <component>.` | Validated UI and data layer | Container extending `BaseBenchmarkContainerComponent<T>`, CSF3 story variants, harness handoff |
++| 7 | `Use the Harness Agent for <component>.` | Validated UI and data layer | Container extending `BaseBenchmarkContainerComponent<T>`, CSF3 story variants whose measured `play` interactions call `window.__storybookPerfTracker.runInteraction(...)`, harness handoff |
+ | 8 | `Use the Benchmark Integration Agent for <component>.` | Completed harness and story | Registry, performance-tracker, paint-cycle, sizing-event, and benchmark-configuration verification; benchmark-integration handoff |
+-| 9 | `Use the Test Agent for <component>.` | Runnable Storybook target | Interaction/scenario helpers, Playwright spec, test handoff |
++| 9 | `Use the Test Agent for <component>.` | Runnable Storybook target and registered measured interactions | Interaction/scenario helpers that consume tracked story interactions, Playwright spec, test handoff |
+ | 10 | `Use the Fidelity Validation Agent for <component>.` | Legacy baseline and migrated story | `validation/parity-report.json`, `validation/fidelity-summary.md`, evidence paths, fidelity handoff |
+ | 11 | `Use the Repair Agent for <component> to resolve <reported issue>.` | A concrete failed validation or Critical/Major parity finding | Targeted repair, revalidation evidence, repair handoff |
+ 
+-- 
+2.55.0.windows.1
+
