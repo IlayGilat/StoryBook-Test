@@ -10,14 +10,32 @@ npm start
 npm run storybook
 ```
 
+## Project layout
+
+```text
+src/
+├── components/
+│   └── <component>/
+│       ├── ui/          # Dumb Angular component and local view helpers
+│       ├── data/        # Consolidated data contract and separate factory
+│       ├── harness/     # Storybook container and story
+│       └── test/        # Playwright spec, scenario, and interactions
+└── benchmark/
+    ├── browser/         # In-page performance tracking
+    ├── data-generator/  # Shared dataset generation
+    ├── harness/         # Shared Angular benchmark container
+    ├── playwright/      # Benchmark execution and reporting
+    └── registry/        # Component identities and derived selectors
+```
+
 ## Validation
 
 ```text
 npm run build
-npm test -- --watch=false
+npm test
 ```
 
-The performance workflow builds Storybook once and runs the pagination and table suites one at a time with a single Playwright worker:
+The performance workflow builds Storybook once and runs every component suite with a single Playwright worker:
 
 ```text
 npm run test:perf

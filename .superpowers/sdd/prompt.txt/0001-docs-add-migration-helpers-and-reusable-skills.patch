@@ -1,0 +1,860 @@
+From 600e5bb85811cfb1fd811ef7fdac4085d53d7855 Mon Sep 17 00:00:00 2001
+From: GILAT ILAY <ILAYGIL@rafael.co.il>
+Date: Tue, 15 Sep 2026 16:04:22 +0300
+Subject: [PATCH] docs: add migration helpers and reusable skills
+
+---
+ .agents/skills/build-component-tree/SKILL.md  | 41 +++++++++++++++++++
+ .../classify-smart-dependencies/SKILL.md      | 41 +++++++++++++++++++
+ .agents/skills/convert-smart-to-dumb/SKILL.md | 39 ++++++++++++++++++
+ .agents/skills/copy-angular-ui-tree/SKILL.md  | 41 +++++++++++++++++++
+ .../skills/create-benchmark-harness/SKILL.md  | 38 +++++++++++++++++
+ .../create-playwright-scenario/SKILL.md       | 38 +++++++++++++++++
+ .../skills/create-storybook-story/SKILL.md    | 38 +++++++++++++++++
+ .agents/skills/derive-data-contract/SKILL.md  | 39 ++++++++++++++++++
+ .../extract-angular-dependencies/SKILL.md     | 40 ++++++++++++++++++
+ .../skills/generate-benchmark-data/SKILL.md   | 38 +++++++++++++++++
+ .../skills/inspect-angular-component/SKILL.md | 41 +++++++++++++++++++
+ .agents/skills/repair-migration/SKILL.md      | 39 ++++++++++++++++++
+ .../validate-component-fidelity/SKILL.md      | 39 ++++++++++++++++++
+ docs/agents/COMPONENT_BOUNDARIES.md           | 22 ++++++++++
+ docs/agents/COMPONENT_TREE_MIGRATION.md       | 34 +++++++++++++++
+ docs/agents/FIDELITY.md                       | 33 +++++++++++++++
+ docs/agents/MIGRATION_ARTIFACTS.md            | 41 +++++++++++++++++++
+ docs/agents/TROUBLESHOOTING.md                | 30 ++++++++++++++
+ docs/agents/WORKFLOW.md                       | 25 +++++++++++
+ 19 files changed, 697 insertions(+)
+ create mode 100644 .agents/skills/build-component-tree/SKILL.md
+ create mode 100644 .agents/skills/classify-smart-dependencies/SKILL.md
+ create mode 100644 .agents/skills/convert-smart-to-dumb/SKILL.md
+ create mode 100644 .agents/skills/copy-angular-ui-tree/SKILL.md
+ create mode 100644 .agents/skills/create-benchmark-harness/SKILL.md
+ create mode 100644 .agents/skills/create-playwright-scenario/SKILL.md
+ create mode 100644 .agents/skills/create-storybook-story/SKILL.md
+ create mode 100644 .agents/skills/derive-data-contract/SKILL.md
+ create mode 100644 .agents/skills/extract-angular-dependencies/SKILL.md
+ create mode 100644 .agents/skills/generate-benchmark-data/SKILL.md
+ create mode 100644 .agents/skills/inspect-angular-component/SKILL.md
+ create mode 100644 .agents/skills/repair-migration/SKILL.md
+ create mode 100644 .agents/skills/validate-component-fidelity/SKILL.md
+ create mode 100644 docs/agents/COMPONENT_BOUNDARIES.md
+ create mode 100644 docs/agents/COMPONENT_TREE_MIGRATION.md
+ create mode 100644 docs/agents/FIDELITY.md
+ create mode 100644 docs/agents/MIGRATION_ARTIFACTS.md
+ create mode 100644 docs/agents/TROUBLESHOOTING.md
+ create mode 100644 docs/agents/WORKFLOW.md
+
+diff --git a/.agents/skills/build-component-tree/SKILL.md b/.agents/skills/build-component-tree/SKILL.md
+new file mode 100644
+index 0000000..414aa79
+--- /dev/null
++++ b/.agents/skills/build-component-tree/SKILL.md
+@@ -0,0 +1,41 @@
++---
++name: build-component-tree
++description: Discover the rendered Angular component tree top-down and produce a deterministic hierarchical artifact.
++---
++
++# Build Component Tree
++
++## When to use
++
++Use in Source Analysis after the benchmark root has been identified and before planning or copying UI nodes.
++
++## Inputs
++
++- Root selector and read-only legacy component files.
++- Selector declarations/import ownership available from the legacy application.
++- `.migrations/<component>/component-tree.json` destination.
++
++## Outputs
++
++- Complete `component-tree.json` with root, ordered nodes, source files, children, and discovery status.
++- Missing-source warnings for `state.json` when applicable.
++
++## Procedure
++
++1. Inspect the root template and record directly rendered Angular selectors in template order.
++2. Resolve each selector to its declaration and source files without modifying source.
++3. Repeat parent-to-child until every reachable rendered Angular component is resolved.
++4. Distinguish components from HTML elements, directives, pipes, projected slots, and dynamically rendered components; record evidence for dynamic edges.
++5. De-duplicate shared nodes by stable ID, detect cycles, and preserve ordered child edges.
++6. Validate that every non-external node has readable TypeScript/template/style sources and serialize deterministically.
++
++## Constraints
++
++- Discovery is top-down; later implementation is bottom-up in strict post-order.
++- Do not copy, adapt, generate, or migrate components.
++- Do not treat an import as rendered without template/runtime evidence.
++- Do not invent missing dynamic children.
++
++## Stop conditions
++
++Stop when all reachable rendered nodes are resolved exactly once and the tree validates, or block immediately on missing required source or unresolved ownership.
+diff --git a/.agents/skills/classify-smart-dependencies/SKILL.md b/.agents/skills/classify-smart-dependencies/SKILL.md
+new file mode 100644
+index 0000000..e190bf7
+--- /dev/null
++++ b/.agents/skills/classify-smart-dependencies/SKILL.md
+@@ -0,0 +1,41 @@
++---
++name: classify-smart-dependencies
++description: Classify Angular dependencies and define evidence-based migration treatment at component boundaries.
++---
++
++# Classify Smart Dependencies
++
++## When to use
++
++Use after dependency extraction during Source Analysis or Planning, and when a node reveals previously unclassified coupling.
++
++## Inputs
++
++- `dependencies.json`, `component-tree.json`, and relevant read-only usage sites.
++- Existing `dumb-boundary.json`, if planning has begun.
++
++## Outputs
++
++- `smart-dependencies.json` entries with category, usage, conversion, and owner.
++- Boundary questions or blockers for planning.
++
++## Procedure
++
++1. Classify each dependency as `presentation`, `data`, `application-control`, or `environment` from actual usage.
++2. Preserve presentation dependencies when compatible with the target.
++3. Map data reads to typed inputs or an internal nested dependency.
++4. Map control effects to typed outputs or explicit harness actions.
++5. Map environment/router/config state to controlled deterministic values or navigation intents.
++6. Keep nested smart components internal when their dependencies can be satisfied without widening the root public contract.
++7. Cross-check that every dependency has exactly one justified treatment.
++
++## Constraints
++
++- Do not flatten nested components by default.
++- Do not replace behavior with no-ops, `any`, fabricated data, or global providers.
++- Do not edit source or implement conversions.
++- Log ambiguity; never guess category from a symbol name alone.
++
++## Stop conditions
++
++Stop when all scoped dependencies have an evidenced category and treatment, or block when missing usage evidence makes a load-bearing classification unknowable.
+diff --git a/.agents/skills/convert-smart-to-dumb/SKILL.md b/.agents/skills/convert-smart-to-dumb/SKILL.md
+new file mode 100644
+index 0000000..de67a99
+--- /dev/null
++++ b/.agents/skills/convert-smart-to-dumb/SKILL.md
+@@ -0,0 +1,39 @@
++---
++name: convert-smart-to-dumb
++description: Replace Angular application coupling with explicit typed presentation inputs, outputs, and controlled values.
++---
++
++# Convert Smart to Dumb
++
++## When to use
++
++Use during Component Tree Migration for a node whose classified data, control, router, or environment dependency cannot remain internal.
++
++## Inputs
++
++- Node source and target files.
++- `smart-dependencies.json`, `dumb-boundary.json`, data contract, and source behavior evidence.
++
++## Outputs
++
++- Standalone `OnPush` presentation component with typed `@Input()`/`@Output()` contracts.
++- Updated boundary and decision artifacts when contracts or behavior change.
++
++## Procedure
++
++1. Preserve presentation imports, DOM, styles, accessibility, and local presentation state.
++2. Replace store selectors, HTTP reads, and app-owned state with typed inputs that preserve loading/empty/error distinctions.
++3. Replace dispatches, mutations, and navigation with typed output intents or planned harness actions.
++4. Replace route/environment/feature-flag reads with deterministic controlled inputs.
++5. Remove only now-unused injections/imports/providers and keep satisfiable nested smart dependencies internal.
++6. Update bindings/types, compile the node, render representative states, and verify event payload semantics.
++
++## Constraints
++
++- No source edits, `any`, hidden network calls, silent no-ops, hard-coded production state, or unrelated refactors.
++- Do not expose unnecessary child contracts as root benchmark inputs.
++- Fidelity precedes cleanup.
++
++## Stop conditions
++
++Stop when each classified coupling has its planned replacement and node validation passes, or block if faithful behavior cannot be derived from evidence.
+diff --git a/.agents/skills/copy-angular-ui-tree/SKILL.md b/.agents/skills/copy-angular-ui-tree/SKILL.md
+new file mode 100644
+index 0000000..0b04233
+--- /dev/null
++++ b/.agents/skills/copy-angular-ui-tree/SKILL.md
+@@ -0,0 +1,41 @@
++---
++name: copy-angular-ui-tree
++description: Copy and adapt planned Angular UI nodes one at a time in post-order while preserving source fidelity.
++---
++
++# Copy Angular UI Tree
++
++## When to use
++
++Use during Component Tree Migration after scaffold and file-plan approval, for the next eligible node in post-order.
++
++## Inputs
++
++- Read-only legacy node files.
++- `component-tree.json`, `file-plan.json`, `migration-plan.md`, and completed child-node evidence.
++- Root destination under `src/components/<component>/ui/`.
++
++## Outputs
++
++- Faithfully copied files for exactly one node at its planned destination.
++- Updated build/decision evidence owned by the active main agent.
++
++## Procedure
++
++1. Confirm every child of the node is already adapted and validated.
++2. Copy the node's TypeScript, template, Less, and required local presentation assets while preserving planned structure.
++3. Adjust only repository-relative paths, standalone imports, filenames, and selector references needed to compile in the target.
++4. Preserve DOM order, classes, accessibility, behavior, and style cascade.
++5. Invoke boundary conversion skills only for evidenced application coupling.
++6. Compile/render the node with completed descendants and record the result before advancing.
++
++## Constraints
++
++- The legacy source is read-only.
++- Never bulk-copy a raw tree for later conversion.
++- Never run `npm run generate:component` for a child; the generator runs exactly once for the top-level benchmark target.
++- Never proceed to a parent while this node fails validation.
++
++## Stop conditions
++
++Stop after one node is copied, adapted, and validated, or when missing source/assets/contracts are recorded as a blocker.
+diff --git a/.agents/skills/create-benchmark-harness/SKILL.md b/.agents/skills/create-benchmark-harness/SKILL.md
+new file mode 100644
+index 0000000..010267d
+--- /dev/null
++++ b/.agents/skills/create-benchmark-harness/SKILL.md
+@@ -0,0 +1,38 @@
++---
++name: create-benchmark-harness
++description: Create the benchmark smart container while preserving the shared readiness, race, sizing, and paint contract.
++---
++
++# Create Benchmark Harness
++
++## When to use
++
++Use in the Harness stage after validated UI and deterministic data artifacts exist.
++
++## Inputs
++
++- UI root inputs/outputs, data factory/schema, component registry identity, and `src/benchmark/harness/benchmark-container.ts`.
++
++## Outputs
++
++- `src/components/<component>/harness/<component>.container.ts` wired to UI and data.
++- Harness validation evidence.
++
++## Procedure
++
++1. Extend `BaseBenchmarkContainerComponent<T>` and set the exact registered `componentName`.
++2. Inject the data generator and implement `generateDataset(size)` using the component schema/factory.
++3. Implement `onDataGenerated(data)` to update the root UI inputs without application services.
++4. Wire UI output intents to deterministic local harness actions required by the story/tests.
++5. Preserve base host attributes, size-event listener, generation race guard, errors, `markForCheck`, and double-`requestAnimationFrame` readiness cycle.
++6. Render zero and representative sizes; verify rapid size changes cannot publish stale data.
++
++## Constraints
++
++- Do not reimplement or bypass the base readiness lifecycle.
++- Do not add network/store/router dependencies to presentational UI.
++- Do not alter shared benchmark infrastructure unless explicitly assigned.
++
++## Stop conditions
++
++Stop when the container compiles, renders validated data, exposes correct ready/busy/error states, and passes focused harness checks.
+diff --git a/.agents/skills/create-playwright-scenario/SKILL.md b/.agents/skills/create-playwright-scenario/SKILL.md
+new file mode 100644
+index 0000000..6656d08
+--- /dev/null
++++ b/.agents/skills/create-playwright-scenario/SKILL.md
+@@ -0,0 +1,38 @@
++---
++name: create-playwright-scenario
++description: Create single-worker Playwright behavior and performance scenarios using the shared benchmark runner and CDP metrics.
++---
++
++# Create Playwright Scenario
++
++## When to use
++
++Use in the Test stage after the Storybook benchmark target renders and tracked interactions are registered.
++
++## Inputs
++
++- Registry identity, story URL, UI behaviors, configured sizes, interaction helpers, and `src/benchmark/playwright/` APIs.
++
++## Outputs
++
++- Scenario/constants/interactions and `src/components/<component>/test/<component>.spec.ts` as required by repository patterns.
++- Focused Playwright results.
++
++## Procedure
++
++1. Define deterministic sizes and tracked interactions from actual component behavior.
++2. Load data through shared benchmark helpers and wait for the harness readiness contract.
++3. Use component-scoped semantic locators and assert DOM/behavioral outcomes before measuring.
++4. Execute performance coverage through `runPerformanceTest` and shared CDP metric collection.
++5. Ensure pages/sessions/listeners are cleaned between cases and results identify component, size, interaction, and metrics.
++6. Run the single component suite, then any required benchmark validation.
++
++## Constraints
++
++- Preserve `fullyParallel: false` and Playwright `workers: 1`.
++- No arbitrary `waitForTimeout`, weakened assertions, nondeterministic data, or edits to `.artifacts/`.
++- Do not repair UI failures in the Test stage; report them for Repair.
++
++## Stop conditions
++
++Stop when behavior assertions and every configured dataset-size scenario pass single-worker, or hand off concrete failures without broad fixes.
+diff --git a/.agents/skills/create-storybook-story/SKILL.md b/.agents/skills/create-storybook-story/SKILL.md
+new file mode 100644
+index 0000000..e2c042f
+--- /dev/null
++++ b/.agents/skills/create-storybook-story/SKILL.md
+@@ -0,0 +1,38 @@
++---
++name: create-storybook-story
++description: Create a Storybook 8 CSF3 story targeting a benchmark harness and using the shared performance tracker.
++---
++
++# Create Storybook Story
++
++## When to use
++
++Use during Benchmark Integration after the harness and component registry identity are ready.
++
++## Inputs
++
++- Harness component, registry identity, interaction requirements, and existing `src/components/*/harness/*.stories.ts` examples.
++
++## Outputs
++
++- `src/components/<component>/harness/<component>.stories.ts`.
++- Storybook render/interaction validation evidence.
++
++## Procedure
++
++1. Define typed CSF3 metadata whose `component` is the harness container.
++2. Set `parameters: { layout: 'fullscreen' }` and deterministic default args, including dataset size when exposed.
++3. Register only necessary presentation providers/decorators.
++4. Define required stories/states without duplicating application services.
++5. Route measured play interactions through `window.__storybookPerfTracker.runInteraction(...)` using the registered identity.
++6. Build/open the story, verify readiness, console cleanliness, and interaction completion.
++
++## Constraints
++
++- Do not target the dumb UI component directly for benchmark stories.
++- Do not use nondeterministic loaders, network calls, arbitrary delays, or app-wide decorators.
++- Do not change unrelated stories.
++
++## Stop conditions
++
++Stop when Storybook builds, the fullscreen harness story reaches ready state, and all declared interactions complete through the tracker.
+diff --git a/.agents/skills/derive-data-contract/SKILL.md b/.agents/skills/derive-data-contract/SKILL.md
+new file mode 100644
+index 0000000..fd27aa3
+--- /dev/null
++++ b/.agents/skills/derive-data-contract/SKILL.md
+@@ -0,0 +1,39 @@
++---
++name: derive-data-contract
++description: Derive complete TypeScript and Zod-ready benchmark data contracts from actual component bindings and states.
++---
++
++# Derive Data Contract
++
++## When to use
++
++Use during Migration Planning or Data work after template bindings and smart dependency treatments are known.
++
++## Inputs
++
++- `component-tree.json`, templates, TypeScript input types, `smart-dependencies.json`, and `dumb-boundary.json`.
++- `.migrations/<component>/data-contract.json` destination.
++
++## Outputs
++
++- Deterministic `data-contract.json` covering types, schemas, dataset shape, sizes, seed, and edge cases.
++- Identified TypeScript/Zod artifacts for the file plan.
++
++## Procedure
++
++1. Enumerate every rendered property, branch discriminator, collection identity, nested field, and interaction-dependent value.
++2. Resolve source types and nullability; distinguish absent, null, empty, loading, and error states.
++3. Define minimal domain/view-model types that cover the evidence without app-only fields.
++4. Specify equivalent Zod schemas, cross-field constraints, dataset array schema, and stable identities.
++5. Define deterministic factories, seed, supported dataset sizes, edge cases, and values needed for behavioral tests.
++6. Cross-check every template binding and public input against the contract.
++
++## Constraints
++
++- Do not invent fields, use `any`, omit validation, or encode nondeterministic time/random/network state.
++- Do not implement UI, harness, story, or tests.
++- Preserve fidelity-relevant formatting inputs.
++
++## Stop conditions
++
++Stop when every binding/state has a sourced type and validation rule and the contract is internally consistent, or block on unresolved load-bearing source types.
+diff --git a/.agents/skills/extract-angular-dependencies/SKILL.md b/.agents/skills/extract-angular-dependencies/SKILL.md
+new file mode 100644
+index 0000000..85b0f73
+--- /dev/null
++++ b/.agents/skills/extract-angular-dependencies/SKILL.md
+@@ -0,0 +1,40 @@
++---
++name: extract-angular-dependencies
++description: Audit one or more discovered Angular nodes for imports, services, tokens, pipes, directives, packages, styles, and assets.
++---
++
++# Extract Angular Dependencies
++
++## When to use
++
++Use during Source Analysis after a node is discovered and before dependency classification or migration planning.
++
++## Inputs
++
++- Read-only source files for nodes listed in `component-tree.json`.
++- Target `.migrations/<component>/dependencies.json`.
++
++## Outputs
++
++- Per-node dependency entries containing `kind`, `symbol`, `module`, `usage`, and `sourceFile`.
++- Warnings for unresolved or missing dependencies.
++
++## Procedure
++
++1. Parse TypeScript imports, decorator imports/providers, constructor and `inject()` tokens, inheritance, and referenced types.
++2. Parse template components, directives, pipes, event/binding helpers, and dynamic component mechanisms.
++3. Parse Less imports, URLs, fonts, assets, variables, mixins, and theme tokens.
++4. Trace only enough declaration/re-export information to identify the owning local file or package.
++5. Record each dependency once per distinct usage and validate every entry has evidence.
++6. Serialize stable node and entry ordering.
++
++## Constraints
++
++- Never edit the external legacy source.
++- Do not classify or transform dependencies in this skill.
++- Do not crawl unrelated modules or package trees.
++- Preserve exact module/path casing.
++
++## Stop conditions
++
++Stop when every evidenced dependency for the scoped nodes is recorded, or block on a missing dependency required to understand rendered behavior.
+diff --git a/.agents/skills/generate-benchmark-data/SKILL.md b/.agents/skills/generate-benchmark-data/SKILL.md
+new file mode 100644
+index 0000000..3ee4073
+--- /dev/null
++++ b/.agents/skills/generate-benchmark-data/SKILL.md
+@@ -0,0 +1,38 @@
++---
++name: generate-benchmark-data
++description: Implement deterministic, Zod-validated benchmark data using the repository data-generator service.
++---
++
++# Generate Benchmark Data
++
++## When to use
++
++Use in the Data stage after `data-contract.json` is approved and the migrated UI contract is stable.
++
++## Inputs
++
++- `data-contract.json`, planned files, and repository patterns under `src/benchmark/data-generator/` and `src/components/*/data/`.
++
++## Outputs
++
++- Component TypeScript types/Zod schemas and deterministic factory under `src/components/<component>/data/`.
++- Data-stage validation evidence.
++
++## Procedure
++
++1. Implement strict types and Zod schemas matching the approved contract.
++2. Implement an index-and-seeded-random factory with stable IDs and fidelity-relevant value distributions.
++3. Generate through `DataGeneratorService.generate(...)`; preserve chunking, abort checks, event-loop yielding, and complete-result validation.
++4. Cover zero, small, configured benchmark, and maximum supported sizes, including contract edge cases.
++5. Verify identical seed/count produce identical data and invalid data fails schema validation.
++6. Run focused type/build/tests and record exact results.
++
++## Constraints
++
++- No `Math.random()`, current time, network, mutable global seed, unvalidated output, or UI/harness changes.
++- Do not reduce the required maximum dataset size.
++- Follow existing file layout and naming.
++
++## Stop conditions
++
++Stop when generation is deterministic, schema-valid, responsive at configured sizes up to 100,000 items, and focused validation passes.
+diff --git a/.agents/skills/inspect-angular-component/SKILL.md b/.agents/skills/inspect-angular-component/SKILL.md
+new file mode 100644
+index 0000000..8329f38
+--- /dev/null
++++ b/.agents/skills/inspect-angular-component/SKILL.md
+@@ -0,0 +1,41 @@
++---
++name: inspect-angular-component
++description: Inspect one Angular component and record its files, metadata, bindings, dependencies, and rendered children without changing source.
++---
++
++# Inspect Angular Component
++
++## When to use
++
++Use during Source Analysis or before migrating one tree node when its exact Angular contract is not yet recorded.
++
++## Inputs
++
++- Read-only legacy component TypeScript path and associated template/style paths.
++- Node identifier in `.migrations/<component>/component-tree.json`.
++- Existing dependency artifacts, if present.
++
++## Outputs
++
++- Verified node metadata for `component-tree.json`.
++- Dependency observations for `dependencies.json` and `smart-dependencies.json`.
++- No source or target UI changes.
++
++## Procedure
++
++1. Read the decorator, class, external/inline template, styles, and directly referenced local types.
++2. Record selector, standalone/module ownership, change detection, inputs, outputs, queries, host bindings/listeners, providers, lifecycle hooks, and local state.
++3. Walk the template in rendered order; record Angular child selectors, structural branches, bindings, pipes, directives, events, ARIA, and stable DOM/classes.
++4. Record style and asset imports, theme tokens, injected services/tokens, router/store use, and package imports with exact source locations.
++5. Reconcile findings with the node entry; report missing files or ambiguous selector ownership as blockers.
++
++## Constraints
++
++- The legacy source is strictly read-only.
++- Discover parent-to-child; do not recursively implement or bulk-copy descendants.
++- Do not infer behavior, types, or dependencies absent from evidence.
++- Load only files required for this node.
++
++## Stop conditions
++
++Stop when metadata, bindings, rendered child references, and dependencies are fully evidenced, or when a required source file/owner is missing and the stage is recorded blocked.
+diff --git a/.agents/skills/repair-migration/SKILL.md b/.agents/skills/repair-migration/SKILL.md
+new file mode 100644
+index 0000000..900aff8
+--- /dev/null
++++ b/.agents/skills/repair-migration/SKILL.md
+@@ -0,0 +1,39 @@
++---
++name: repair-migration
++description: Apply the smallest evidence-backed fix for a concrete migration compilation, runtime, test, or fidelity failure.
++---
++
++# Repair Migration
++
++## When to use
++
++Use only when a prior stage reports a reproducible failure or Fidelity Validation records an open Critical/Major deviation.
++
++## Inputs
++
++- Exact failure, reproduction command/steps, evidence, owning files/node, latest handoff, and relevant migration artifacts.
++
++## Outputs
++
++- Surgical changes limited to the failure's ownership scope.
++- Updated build/parity/decision evidence and a repair handoff.
++
++## Procedure
++
++1. Reproduce the reported failure unchanged and identify the smallest owning node or harness/test path.
++2. Trace the failure to source evidence, approved contracts, and repository mechanics.
++3. Change the minimum files needed; preserve DOM, styles, behavior, deterministic data, and benchmark contracts outside the defect.
++4. Re-run the narrow failed check, then the nearest regression check required by the changed boundary.
++5. Update the originating report and record meaningful deviations with reason, fidelity impact, and status.
++6. Stop; do not advance to another stage or opportunistically clean adjacent code.
++
++## Constraints
++
++- Never edit the external legacy source.
++- No speculative rewrites, broad refactors, disabled checks, widened tolerances, deleted assertions, `any`, or generator reruns.
++- Preserve single-worker Playwright and `BaseBenchmarkContainerComponent` readiness/race/double-rAF behavior.
++- Delegate only through `.agents/skills/subagent-driven-development/SKILL.md` when delegation is explicitly part of the active stage.
++
++## Stop conditions
++
++Stop when the exact failure and required regressions pass with evidence, or when three scoped attempts cannot progress and the repair is recorded blocked with the unresolved cause.
+diff --git a/.agents/skills/validate-component-fidelity/SKILL.md b/.agents/skills/validate-component-fidelity/SKILL.md
+new file mode 100644
+index 0000000..7e415bb
+--- /dev/null
++++ b/.agents/skills/validate-component-fidelity/SKILL.md
+@@ -0,0 +1,39 @@
++---
++name: validate-component-fidelity
++description: Compare legacy and migrated component visuals, normalized DOM, computed styles, interactions, and theme tokens.
++---
++
++# Validate Component Fidelity
++
++## When to use
++
++Use in Fidelity Validation after tests pass and equivalent legacy baseline evidence can be captured read-only.
++
++## Inputs
++
++- Authorized legacy build/URL, migrated Storybook story, controlled dataset/states, and `docs/agents/FIDELITY.md`.
++- `.migrations/<component>/parity-report.json` destination.
++
++## Outputs
++
++- Baseline/candidate evidence references and complete `parity-report.json`.
++- Critical, Major, Minor, or Accepted deviations with reproducible steps.
++
++## Procedure
++
++1. Lock browser, viewport, scale, fonts, locale, timezone, theme, data, animation policy, and interaction state.
++2. Capture legacy evidence without modifying its repository or state.
++3. Capture the same migrated states after the harness reports ready.
++4. Compare screenshots, normalized DOM, computed styles, behavior, accessibility semantics, and resolved theme tokens.
++5. Apply the documented `0.1` per-channel and `0.2%` differing-pixel gates, then visually classify coherent defects even below threshold.
++6. Record evidence, expected/actual, severity, and verdict; route Critical/Major findings to targeted Repair.
++
++## Constraints
++
++- Do not widen tolerances, hide unstable regions without evidence, refactor UI, or edit legacy source.
++- Automated image results do not override visible or behavioral defects.
++- Accepted deviations require a matching decision record.
++
++## Stop conditions
++
++Stop when every required state/dimension has evidence and all deviations are classified, or block when a comparable baseline cannot be obtained.
+diff --git a/docs/agents/COMPONENT_BOUNDARIES.md b/docs/agents/COMPONENT_BOUNDARIES.md
+new file mode 100644
+index 0000000..f85194f
+--- /dev/null
++++ b/docs/agents/COMPONENT_BOUNDARIES.md
+@@ -0,0 +1,22 @@
++# Component Boundaries
++
++Convert application coupling at the smallest faithful boundary. UI components remain standalone, presentational, `OnPush`, and communicate through explicit `@Input()`/`@Output()` contracts. Preserve local presentation state such as open panels, focus, hover, current tab, and transient form values when it does not own application data.
++
++## Transformation catalog
++
++| Source coupling | Presentation boundary | Rule |
++|---|---|---|
++| `store.select(selector)` / selector signals | `@Input() value` or a root view-model input | Preserve loading/empty/error distinctions and template timing. |
++| `store.dispatch(action)` | `@Output() actionRequested` | Emit the minimal typed intent; the harness decides effects. |
++| HTTP/query service reads | Typed input data/state | Do not make network calls from migrated UI. |
++| Mutation/service commands | Typed output event | Keep confirmation and local UI state; external mutation leaves the UI boundary. |
++| `ActivatedRoute` params/query/data | Controlled inputs | Provide deterministic route-derived values from the harness. |
++| `Router.navigate(...)` | Navigation-request output | Include only the destination intent needed by the consumer. |
++| Environment/config token | Typed controlled value | Centralize defaults in the harness/data layer; no machine-dependent reads. |
++| Feature flag | Boolean or discriminated input | Cover enabled and disabled branches with deterministic fixtures. |
++
++Do not flatten a nested smart component when its application dependencies can be satisfied internally without expanding the benchmark's public API. Expose root inputs/outputs only when the harness must control or observe them. Preserve presentation-only dependencies (pipes, directives, icon components, formatters) when compatible with the repository.
++
++For each conversion, update `smart-dependencies.json`, `dumb-boundary.json`, TypeScript types, template bindings, and `logs/decisions.md` when behavior or architecture meaningfully changes. Validate compile, render, and event semantics at the node before its parent is finalized.
++
++Forbidden shortcuts include `any` contracts, silent no-op service replacements, hard-coded production state, fabricated defaults, removed accessibility semantics, and broad refactors unrelated to the reported coupling.
+diff --git a/docs/agents/COMPONENT_TREE_MIGRATION.md b/docs/agents/COMPONENT_TREE_MIGRATION.md
+new file mode 100644
+index 0000000..d617b70
+--- /dev/null
++++ b/docs/agents/COMPONENT_TREE_MIGRATION.md
+@@ -0,0 +1,34 @@
++# Component Tree Migration
++
++## Discover top-down, implement bottom-up
++
++Start from the benchmark root template and follow rendered Angular selectors parent-to-child. This top-down discovery proves what actually participates in the view. Implementation reverses that dependency order: complete every descendant before its parent, in strict post-order. Never bulk-copy a raw tree for later conversion.
++
++For `Root -> [Toolbar, Grid -> Cell]`, discovery is `Root, Toolbar, Grid, Cell`; implementation is `Toolbar, Cell, Grid, Root`.
++
++```text
++postOrder(node):
++  for child in node.children in rendered order:
++    postOrder(child)
++  migrateAndValidate(node)
++```
++
++Use `component-tree.json` as the traversal source and `file-plan.json.validationOrder` as the executable sequence. Shared descendants appear once; detect selector cycles and block rather than guessing.
++
++## Migrate one node
++
++1. **Faithful copy:** read the node's TypeScript, template, Less, assets, presentation imports, and direct contracts from the read-only source. Copy only this node into its planned destination.
++2. **Template adapt:** keep semantic structure, element order, classes, bindings, accessibility, and child selectors. Change only paths/contracts required by the standalone target.
++3. **Style adapt:** preserve Less rules, cascade, token use, layout, and encapsulation. Resolve imports/assets deliberately; log meaningful deviations.
++4. **Dependency strip:** classify every dependency. Preserve presentation dependencies; convert data reads to `@Input()`, application-control effects to `@Output()` or harness actions, and environment state to controlled values. Keep satisfiable nested smart dependencies internal.
++5. **Node check:** compile the smallest target that includes the node, render its representative states, inspect for template/runtime errors, and record the result in `logs/build-report.md`.
++
++Only after a node passes may its parent import or render it. If validation fails, repair that node before continuing; do not suppress errors or proceed upward.
++
++## Isolation rules
++
++- Work in one node's planned files at a time; do not let concurrent workers share files.
++- Do not run `npm run generate:component` for children. The command is invoked exactly once for the top-level root during Component Scaffold.
++- Avoid temporary parent stubs that conceal missing child contracts.
++- Keep compiler output scoped to the current node and its completed descendants to prevent cascading diagnostics.
++- Stop blocked when source files, selector ownership, or required assets are missing; record the missing input instead of inventing it.
+diff --git a/docs/agents/FIDELITY.md b/docs/agents/FIDELITY.md
+new file mode 100644
+index 0000000..08c0831
+--- /dev/null
++++ b/docs/agents/FIDELITY.md
+@@ -0,0 +1,33 @@
++# Fidelity Validation
++
++Fidelity means the migrated story preserves the legacy component's visible result, normalized DOM, computed presentation, interactions, and theme behavior for equivalent controlled data.
++
++## Evidence dimensions
++
++1. Capture screenshots at the same viewport, device scale, theme, fonts, dataset, scroll position, animation state, and interaction state.
++2. Compare normalized DOM after removing volatile framework attributes, generated IDs, comments, and explicitly documented nondeterminism. Preserve semantic elements, order, classes, ARIA, text, and stable attributes.
++3. Compare computed styles for layout, geometry, typography, colors, borders, overflow, visibility, and stacking. Record values and selectors, not impressions.
++4. Replay behavioral interactions: render/readiness, selection, sorting, filtering, expansion, pagination, scrolling, keyboard use, emitted events, loading, empty, and error states as applicable.
++5. Map theme tokens and CSS variables. Compare resolved values in every supported theme; do not replace source tokens with approximate literals without a recorded decision.
++
++## Severity
++
++- **Critical**: missing/broken primary behavior, crash, inaccessible core control, unusable layout, or invalid benchmark readiness/data behavior. Must repair.
++- **Major**: obvious structural, geometry, typography, color, state, or interaction mismatch that changes user experience. Must repair or explicitly accept with authority.
++- **Minor**: small non-functional pixel/style variance with localized impact. Record and triage.
++- **Accepted**: a measured deviation approved and documented in `logs/decisions.md`; retain evidence and rationale.
++
++## Image thresholds
++
++Use a per-channel pixel tolerance of `0.1` and fail when differing pixels exceed `0.2%` of the image. Treat these as triage gates, not permission to ignore clustered defects: any coherent visible region, text shift, missing element, or interaction-state mismatch is reviewed and severity-classified even below the percentage threshold. Font or platform instability must be normalized at capture time, not hidden by broadening tolerance.
++
++## Legacy baseline capture
++
++1. Confirm the authorized legacy URL/build and never modify its repository, data, or configuration.
++2. Record commit/build identity, route, viewport, device scale, browser, theme, locale, timezone, fonts, dataset fixture, and steps.
++3. Wait for application readiness and stable fonts/images; disable animations only when the same rule is applied to both sides.
++4. Capture full and component-bounded screenshots plus DOM/style/interaction evidence for each required state.
++5. Store evidence outside the legacy source and reference it from `.migrations/<component>/parity-report.json`.
++6. Repeat the identical protocol against Storybook and classify every material deviation.
++
++Never refactor merely to improve a diff. Repair the smallest fidelity gap and re-run only the affected comparison plus required regression checks.
+diff --git a/docs/agents/MIGRATION_ARTIFACTS.md b/docs/agents/MIGRATION_ARTIFACTS.md
+new file mode 100644
+index 0000000..6923b9b
+--- /dev/null
++++ b/docs/agents/MIGRATION_ARTIFACTS.md
+@@ -0,0 +1,41 @@
++# Migration Artifacts
++
++All persistent migration state lives under `.migrations/<component>/`; the external legacy repository remains read-only.
++
++```text
++.migrations/<component>/
++  state.json
++  component-tree.json
++  dependencies.json
++  smart-dependencies.json
++  migration-plan.md
++  dumb-boundary.json
++  data-contract.json
++  file-plan.json
++  parity-report.json
++  logs/decisions.md
++  logs/build-report.md
++  handoffs/<stage>.md
++```
++
++## Machine-readable files
++
++- `state.json`: fields and ordering exactly follow `.agents/shared/state-schema.md`: `component`, optional `sourcePath`, `status`, `currentStage`, `completedStages`, `targetLocation`, `warnings`, `lastUpdatedBy`, `updatedAt`. Use two spaces and a trailing newline.
++- `component-tree.json`: `{ "root": "selector", "nodes": [{ "id", "selector", "sourceFiles", "children", "discoveryStatus" }] }`. `children` preserves rendered template order; paths identify read-only source files. Every node appears once.
++- `dependencies.json`: `{ "nodes": { "<node-id>": [{ "kind", "symbol", "module", "usage", "sourceFile" }] } }` for imports, injected services, pipes, directives, components, tokens, styles, assets, and packages.
++- `smart-dependencies.json`: `{ "nodes": { "<node-id>": [{ "symbol", "category", "usage", "conversion", "owner" }] } }`; `category` is `presentation`, `data`, `application-control`, or `environment`.
++- `dumb-boundary.json`: `{ "rootInputs", "rootOutputs", "preservedInternalDependencies", "nodeOverrides" }`. Expose only the root benchmark contract; keep satisfiable nested smart behavior internal.
++- `data-contract.json`: `{ "types", "schemas", "dataset", "sizes", "seed", "edgeCases" }`; every binding has a type and validation rule, and data generation is deterministic.
++- `file-plan.json`: `{ "generatorTarget", "generatedFiles", "copiedNodes", "manualFiles", "validationOrder" }`. `generatorTarget` is the root and appears exactly once; `validationOrder` is post-order.
++- `parity-report.json`: `{ "component", "baseline", "candidate", "dimensions", "deviations", "verdict" }`; each deviation records `severity`, `evidence`, `expected`, `actual`, and `status` (`open` or `accepted`).
++
++Use repository-relative paths for target files and absolute or clearly rooted paths for external source files. Keep schemas stable, concise, and free of scratch reasoning.
++
++## Markdown files
++
++- `migration-plan.md`: scope, post-order node sequence, dependency conversions, root boundary, file operations, node checks, stage validations, risks, and explicit non-goals.
++- `logs/decisions.md`: append dated entries with change, reason, fidelity impact, and status `Temporary` or `Accepted`.
++- `logs/build-report.md`: append command, scope/node, exit result, concise diagnostics, and evidence path. Do not paste unbounded logs.
++- `handoffs/<stage>.md`: use the exact section order in `.agents/shared/handoff-contract.md`: metadata, Inputs Used, Work Completed, Files Changed / Created, Important Decisions, Known Deviations, Warnings / Open Risks, Validation Results, Next Stage Requirements. Use `None`; never omit a section.
++
++The handoff status and UTC timestamp must match the final `state.json` update. A handoff recommends but never starts the next stage.
+diff --git a/docs/agents/TROUBLESHOOTING.md b/docs/agents/TROUBLESHOOTING.md
+new file mode 100644
+index 0000000..7068815
+--- /dev/null
++++ b/docs/agents/TROUBLESHOOTING.md
+@@ -0,0 +1,30 @@
++# Migration Troubleshooting
++
++Diagnose the smallest failing scope, preserve the original error, apply a targeted repair, and re-run the failed check. Record commands and outcomes in `.migrations/<component>/logs/build-report.md`; meaningful deviations also go in `logs/decisions.md`.
++
++## TypeScript and Less
++
++- Unknown selector/input/output: confirm the child node already passed, its standalone import is present, selector and contract match the source, and no parent was implemented before a descendant.
++- Injector/provider failure: classify the token. Preserve presentation providers; replace data/control/environment dependencies at the planned boundary rather than adding app-wide providers.
++- Strict type/template error: derive the missing contract from real bindings and source types. Do not use `any`, disable strictness, or invent nullable data.
++- Less import/variable failure: verify source-relative asset/token paths, Storybook include paths, casing, and theme variables. Do not inline approximate values before fidelity review.
++
++## Storybook
++
++- Blank or unknown component: ensure the CSF3 story targets the harness container, imports the standalone component, and uses `parameters: { layout: 'fullscreen' }`.
++- Missing provider/decorator: add only the presentation provider required by the rendered tree; application services belong behind inputs/outputs or the harness.
++- Unhandled rejection or permanent busy state: inspect data generation errors, stale-generation guards, and the container's double-`requestAnimationFrame` completion. Preserve `data-ready`, `aria-busy`, and `data-error` behavior.
++- Interaction failure: invoke work through `window.__storybookPerfTracker.runInteraction(...)` and verify the named target is registered before measuring.
++
++## Playwright
++
++- Locator timeout: first check Storybook console/runtime errors and `data-ready`; then prefer semantic or component-scoped locators over longer arbitrary waits.
++- Ready-state race: dispatch the dataset-size event, wait for the harness readiness contract, and avoid `waitForTimeout`.
++- Inconsistent metrics: keep `fullyParallel: false` and `workers: 1`; close pages and CDP sessions between scenarios and remove unrelated background work.
++- Missing behavior: reproduce with the smallest configured dataset before running the full performance matrix.
++
++## 100k-item memory pressure
++
++Run a warm-up and repeated fixed-seed iterations. Capture DOM node count, heap before/after forced GC where supported, listeners, timers, detached nodes, and CDP metrics. Check that size-event listeners are removed in `ngOnDestroy`, obsolete generations are ignored, temporary arrays/references are released, and rendering does not accidentally materialize hidden duplicates. A one-time allocation spike is not a leak; retained growth across stabilized iterations is. Repair the owning node or harness path and repeat the same scenario single-worker.
++
++Do not alter the read-only legacy source, widen image tolerances, delete assertions, disable compiler checks, or perform unrelated cleanup to make a failure disappear.
+diff --git a/docs/agents/WORKFLOW.md b/docs/agents/WORKFLOW.md
+new file mode 100644
+index 0000000..f0472e0
+--- /dev/null
++++ b/docs/agents/WORKFLOW.md
+@@ -0,0 +1,25 @@
++# Migration Workflow
++
++Run one stage at a time. Replace `<component>` with the kebab-case benchmark root. Each stage reads `.agents/shared/core-rules.md`, its own `.agents/<stage>/AGENT.md`, and only the latest handoff and artifacts named there. A stage writes its handoff, updates `state.json`, and stops when its Definition of Done is met.
++
++| # | Human invocation | Required input | Expected output |
++|---|---|---|---|
++| 1 | `Use the Project Bootstrap Agent for <component>.` | Repository and legacy source location | `.migrations/<component>/state.json`, workspace checks, `handoffs/project-bootstrap.md` |
++| 2 | `Use the Source Analysis Agent for <component>.` | Bootstrap handoff; read-only legacy root component | `component-tree.json`, `dependencies.json`, `smart-dependencies.json`, source-analysis handoff |
++| 3 | `Use the Migration Planning Agent for <component>.` | Analysis artifacts | `migration-plan.md`, `dumb-boundary.json`, `data-contract.json`, `file-plan.json`, planning handoff |
++| 4 | `Use the Component Scaffold Agent for <component>.` | Approved plan and file plan | One `npm run generate:component <component>` invocation for the root only; scaffold handoff |
++| 5 | `Use the Component Tree Migration Agent for <component>.` | Scaffold plus tree and plan | UI nodes adapted in strict post-order, node validation evidence, tree-migration handoff |
++| 6 | `Use the Data Agent for <component>.` | Data contract and migrated UI bindings | TypeScript types, Zod schema, deterministic data factory, data handoff |
++| 7 | `Use the Harness Agent for <component>.` | Validated UI and data layer | Container extending `BaseBenchmarkContainerComponent<T>`, harness handoff |
++| 8 | `Use the Benchmark Integration Agent for <component>.` | Harness and registry conventions | CSF3 story, registry/tracker integration, benchmark-integration handoff |
++| 9 | `Use the Test Agent for <component>.` | Runnable Storybook target | Interaction/scenario helpers, Playwright spec, test handoff |
++| 10 | `Use the Fidelity Validation Agent for <component>.` | Legacy baseline and migrated story | `parity-report.json`, evidence paths, fidelity handoff |
++| 11 | `Use the Repair Agent for <component> to resolve <reported issue>.` | A concrete failed validation or Critical/Major parity finding | Targeted repair, revalidation evidence, repair handoff |
++
++Discovery is top-down; implementation is bottom-up in strict post-order. The legacy source is read-only. Child components are copied and adapted manually into the root UI tree; never invoke the generator for a child.
++
++## Resume
++
++Open `.migrations/<component>/state.json`. Verify `component`, `targetLocation`, `status`, `currentStage`, warnings, and the latest matching handoff. If status is `in_progress` or `failed`, re-run that same stage. If it is `blocked`, supply the missing prerequisite recorded in warnings and the handoff, then re-run the same stage. Never infer completion from files alone, skip a stage, or auto-start the recommended next agent.
++
++See [Migration Artifacts](MIGRATION_ARTIFACTS.md) for schemas and `.agents/shared/state-schema.md` for update rules.
+-- 
+2.55.0.windows.1
+

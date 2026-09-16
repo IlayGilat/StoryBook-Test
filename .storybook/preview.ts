@@ -1,5 +1,5 @@
 import type { Preview } from '@storybook/angular';
-import '../src/testing/perf-tracker';
+import '../src/benchmark/browser/performance-tracker';
 
 const preview: Preview = {
   tags: ['autodocs'],

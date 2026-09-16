@@ -1,0 +1,130 @@
+From 5442d08f20f1c8ac3de0b2b6595422350fe8904d Mon Sep 17 00:00:00 2001
+From: GILAT ILAY <ILAYGIL@rafael.co.il>
+Date: Tue, 15 Sep 2026 15:54:46 +0300
+Subject: [PATCH] docs: align migration foundation contracts
+
+---
+ .agents/shared/core-rules.md   |  3 +++
+ .agents/shared/state-schema.md | 41 +++++++---------------------------
+ AGENTS.md                      |  2 +-
+ 3 files changed, 12 insertions(+), 34 deletions(-)
+
+diff --git a/.agents/shared/core-rules.md b/.agents/shared/core-rules.md
+index 700d25b..9b9d04e 100644
+--- a/.agents/shared/core-rules.md
++++ b/.agents/shared/core-rules.md
+@@ -18,4 +18,7 @@ These rules bind every migration stage and worker.
+ - Discover the rendered tree top-down from the benchmark root; create and adapt nodes bottom-up in strict post-order. Never bulk-copy a raw tree for later conversion.
+ - Run `npm run generate:component <name>` exactly once per migration and only for the top-level benchmark target. Never generate child components separately.
+ - Classify source dependencies as presentation, data, application control, or environment dependencies. Preserve presentation dependencies; convert data to inputs, control effects to outputs or harness actions, and environment state to controlled values.
++- Preserve nested smart components when their application dependencies can be satisfied internally; do not flatten them or expose unnecessary child contracts as public benchmark inputs.
++- Reuse an existing migrated shared component only when it preserves visual and behavioral fidelity completely; otherwise copy and adapt the required source variant.
++- Concurrent workers may write only to completely disjoint scopes. Never allow simultaneous edits to the same file or `state.json`; the main agent coordinates and integrates all writes.
+ - If required source material is missing, record the missing input, mark the stage blocked, and stop without inventing behavior or data structures.
+diff --git a/.agents/shared/state-schema.md b/.agents/shared/state-schema.md
+index ad59eaa..ad4d7db 100644
+--- a/.agents/shared/state-schema.md
++++ b/.agents/shared/state-schema.md
+@@ -9,7 +9,6 @@ Each top-level migration owns `.migrations/<component-name>/state.json`. The fil
+   "$schema": "http://json-schema.org/draft-07/schema#",
+   "title": "MigrationState",
+   "type": "object",
+-  "additionalProperties": false,
+   "required": [
+     "component",
+     "status",
+@@ -21,14 +20,10 @@ Each top-level migration owns `.migrations/<component-name>/state.json`. The fil
+     "updatedAt"
+   ],
+   "properties": {
+-    "component": {
+-      "type": "string",
+-      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+-      "description": "Kebab-case name of the top-level component"
+-    },
++    "component": { "type": "string", "description": "Kebab-case name of top-level component" },
+     "sourcePath": {
+       "type": "string",
+-      "description": "Absolute or relative path to the read-only legacy component source"
++      "description": "Absolute or relative path to legacy component source"
+     },
+     "status": {
+       "type": "string",
+@@ -52,36 +47,16 @@ Each top-level migration owns `.migrations/<component-name>/state.json`. The fil
+     },
+     "completedStages": {
+       "type": "array",
+-      "uniqueItems": true,
+-      "items": {
+-        "type": "string",
+-        "enum": [
+-          "project-bootstrap",
+-          "source-analysis",
+-          "migration-planning",
+-          "component-scaffold",
+-          "component-tree-migration",
+-          "data",
+-          "harness",
+-          "benchmark-integration",
+-          "test",
+-          "fidelity-validation",
+-          "repair"
+-        ]
+-      }
+-    },
+-    "targetLocation": {
+-      "type": "string",
+-      "pattern": "^src/components/[a-z0-9]+(?:-[a-z0-9]+)*$",
+-      "description": "Benchmark root, for example src/components/customer-page"
++      "items": { "type": "string" }
+     },
++    "targetLocation": { "type": "string", "description": "e.g. src/components/<component>" },
+     "warnings": {
+       "type": "array",
+       "items": { "type": "string" }
+     },
+     "lastUpdatedBy": {
+       "type": "string",
+-      "description": "Name of the stage or worker updating state"
++      "description": "Name of the stage or subagent updating state"
+     },
+     "updatedAt": {
+       "type": "string",
+@@ -94,10 +69,10 @@ Each top-level migration owns `.migrations/<component-name>/state.json`. The fil
+ ## Deterministic Update Rules
+ 
+ - Serialize fields in schema order and format JSON with two-space indentation plus a trailing newline.
+-- Keep `completedStages` in canonical stage order, without duplicates. Add a stage only after its DoD and validation pass.
++- Append a completed stage once, after its DoD and validation pass, and retain entries in canonical stage order.
+ - Set `currentStage` to the stage being executed. Never advance it on behalf of the next stage.
+ - Set `status` to `in_progress` when a stage begins; use `failed` for failed validation, `blocked` for missing prerequisites, and `completed` only when the migration itself has completed its required terminal validation.
+-- Replace `updatedAt` with the update's ISO 8601 UTC timestamp and set `lastUpdatedBy` to the sole writer. Only the main agent writes `state.json`; concurrently delegated workers must not edit it.
++- Replace `updatedAt` with the update's ISO 8601 UTC timestamp. Set `lastUpdatedBy` to the stage or subagent responsible for the integrated update; the main agent physically applies serialized `state.json` writes so concurrent workers never edit it directly.
+ - Keep warnings concise, stable, and ordered by first discovery. Remove one only when its cause is verified resolved.
+ 
+ ## Example
+@@ -116,7 +91,7 @@ Each top-level migration owns `.migrations/<component-name>/state.json`. The fil
+   ],
+   "targetLocation": "src/components/customer-page",
+   "warnings": [],
+-  "lastUpdatedBy": "component-scaffold",
++  "lastUpdatedBy": "component-tree-migration",
+   "updatedAt": "2026-09-15T10:00:00Z"
+ }
+ ```
+diff --git a/AGENTS.md b/AGENTS.md
+index b428993..614fe63 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -20,7 +20,7 @@ Read `.agents/shared/core-rules.md` before migration work. This file contains on
+ - A benchmark target owns `src/components/<name>/{ui,data,harness,test}/`.
+ - UI components are standalone, presentational, `OnPush`, and communicate through explicit `@Input()`/`@Output()` contracts. They have no benchmark or test coupling.
+ - Harness containers extend `BaseBenchmarkContainerComponent<T>` from `src/benchmark/harness/benchmark-container`; preserve ready/busy attributes, race guards, sizing events, and the double-`requestAnimationFrame` paint cycle.
+-- Stories target the harness. Interactions use `window.__storybookPerfTracker.runInteraction(...)`.
++- Stories target the harness, retain `parameters: { layout: 'fullscreen' }`, and use `window.__storybookPerfTracker.runInteraction(...)` for interactions.
+ - Playwright remains single-worker. Never edit or commit `.artifacts/`.
+ 
+ ## Migration Operating Rules
+-- 
+2.55.0.windows.1
+

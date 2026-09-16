@@ -1,0 +1,141 @@
+From 89f06214f8c18ac1fc50fad81f6e27bc5e2dd8f1 Mon Sep 17 00:00:00 2001
+From: GILAT ILAY <ILAYGIL@rafael.co.il>
+Date: Tue, 15 Sep 2026 16:48:38 +0300
+Subject: [PATCH] docs: require Angular template compilation per node
+
+---
+ .agents/component-tree-migration/AGENT.md     |  8 ++--
+ .../node-compilation-verification.md          |  8 ++--
+ .superpowers/sdd/prompt.txt/task-4-report.md  | 41 +++++++++++++++++++
+ 3 files changed, 49 insertions(+), 8 deletions(-)
+
+diff --git a/.agents/component-tree-migration/AGENT.md b/.agents/component-tree-migration/AGENT.md
+index 1753a13..f0da0da 100644
+--- a/.agents/component-tree-migration/AGENT.md
++++ b/.agents/component-tree-migration/AGENT.md
+@@ -71,7 +71,7 @@ Use only `.agents/skills/subagent-driven-development/SKILL.md`. The main agent s
+ - Preserve DOM structure, element order, attributes, accessibility, classes, Less/CSS, composition, presentation logic, and visual interactions before refactoring.
+ - Classify each dependency: preserve presentation; convert data reads to typed inputs; convert application control to typed outputs or planned harness actions; convert environment state to typed controlled values; retain local presentation state.
+ - Reuse shared UI only when the planned candidate is reverified at 100% visual and behavioral fidelity; otherwise copy and adapt the source variant.
+-- After every node, record compile/type-check evidence in `.migrations/<component>/validation/build-report.md` and meaningful deviations in `logs/decisions.md`.
++- After every node, record Angular template-aware compilation evidence in `.migrations/<component>/validation/build-report.md` and meaningful deviations in `logs/decisions.md`.
+ 
+ ## 10. Non-Responsibilities
+ 
+@@ -86,7 +86,7 @@ Use only `.agents/skills/subagent-driven-development/SKILL.md`. The main agent s
+ 2. Take the first incomplete node in `file-plan.json.validationOrder`; load only its planned source, dependency evidence, selected worker prompt(s), and completed direct-child contracts.
+ 3. Copy and adapt that node's TypeScript, template, styles, assets, pipes/directives, and application boundaries in its planned files; never copy another node speculatively.
+ 4. Confirm all child selectors/imports resolve to already-verified stable child contracts and preserve the source composition.
+-5. Run the smallest Angular compile/type-check that covers the node and completed descendants; inspect imports, standalone/`OnPush` metadata, Less resolution, contracts, and residual production coupling.
++5. Run `npx ng build` or the repository's smallest Angular compiler target/configuration with equivalent template checking that covers the node and completed descendants; inspect imports, standalone/`OnPush` metadata, Less resolution, contracts, and residual production coupling. Plain `tsc` may supplement this check but never satisfies the gate.
+ 6. On success, append node evidence and deviations, mark the node complete in the main agent's working queue, and continue to its parent; on failure, the main agent must not proceed upward until that node is repaired and reverified.
+ 7. After the root is migrated last, run full UI-tree validation, update state, write the canonical handoff, and stop without entering Data or Harness.
+ 
+@@ -115,7 +115,7 @@ Use only `.agents/skills/subagent-driven-development/SKILL.md`. The main agent s
+ ## 15. Validation
+ 
+ - Parse `component-tree.json`, `file-plan.json`, `smart-dependencies.json`, and `dumb-boundary.json`; prove uniqueness, child-before-parent ordering, root-last ordering, and complete file/dependency dispositions.
+-- After each node run `npx tsc --noEmit` or the repository's smallest equivalent Angular template/type compile covering that node; require exit zero before dequeuing its parent.
++- After each node run `npx ng build` or a repository Angular compiler target/configuration with equivalent template checking that covers that node and its completed descendants; require exit zero before dequeuing its parent. Plain `npx tsc --noEmit` may be supplementary, but it is never sufficient because it does not validate Angular templates.
+ - Verify standalone imports/selectors, `ChangeDetectionStrategy.OnPush`, typed contracts, template bindings, Less/assets, stable child contracts, and absence of unexpected NgRx, backend service, router, or environment imports.
+ - At the end run the repository compile check for the complete `src/components/<component>/ui/` tree and inspect the diff to ensure no generator, data, harness, test, benchmark, unrelated component, or legacy file changed.
+ - Verify the inventory/order in `validation/build-report.md`, decision-log entries, state, and handoff agree with the completed work.
+@@ -125,7 +125,7 @@ Use only `.agents/skills/subagent-driven-development/SKILL.md`. The main agent s
+ - [ ] Every planned node was copied and adapted exactly once in `file-plan.json.validationOrder`, every child before its parent, and the root UI last.
+ - [ ] Every parent consumes verified stable child contracts and the rendered tree remains structurally and visually faithful.
+ - [ ] All application data/control/router/environment couplings have explicit typed presentational treatments; local presentation state and compatible presentation dependencies remain intact.
+-- [ ] Every node passed compile/type-check before upward progress, and the complete migrated UI tree compiles cleanly.
++- [ ] Every node passed Angular template-aware compilation before upward progress, and the complete migrated UI tree compiles cleanly; no node relied on plain `tsc` as its gate.
+ - [ ] All meaningful deviations and per-node validation evidence are recorded; shared reuse is backed by verified 100% fidelity.
+ - [ ] State and canonical handoff agree, and no generator or later-stage work occurred.
+ 
+diff --git a/.agents/component-tree-migration/subagents/node-compilation-verification.md b/.agents/component-tree-migration/subagents/node-compilation-verification.md
+index a3fa7ad..1835090 100644
+--- a/.agents/component-tree-migration/subagents/node-compilation-verification.md
++++ b/.agents/component-tree-migration/subagents/node-compilation-verification.md
+@@ -12,7 +12,7 @@ Use after all edits for the current queue node are integrated; use again for the
+ 
+ - Current node identifier, exact target files, and position in `file-plan.json.validationOrder`
+ - Completed descendant/child contract evidence and applicable plan/boundary entries
+-- Parent-provided smallest compile/type-check command and repository root
++- Parent-provided `npx ng build` command or repository Angular compiler target/configuration with equivalent template checking, plus the repository root
+ 
+ ## 4. Outputs
+ 
+@@ -20,7 +20,7 @@ Use after all edits for the current queue node are integrated; use again for the
+ 
+ ## 5. Allowed Scope
+ 
+-Read current node, completed descendants, plans, and compiler output; run non-mutating compile/search checks only.
++Read current node, completed descendants, plans, and compiler output; run non-mutating Angular template-aware compile/search checks only.
+ 
+ ## 6. Forbidden Scope
+ 
+@@ -29,13 +29,13 @@ Any file edit, repair, error suppression, ancestor validation before node succes
+ ## 7. Procedure
+ 
+ 1. Confirm the node is the next queue entry and every direct child has prior passing evidence and a stable consumed contract.
+-2. Run the smallest Angular template/TypeScript compile covering the node and completed descendants; capture exact output and exit code.
++2. Run `npx ng build` or the smallest repository Angular compiler target/configuration with equivalent template checking that covers the node and completed descendants; capture exact output and exit code. Plain `tsc` may run as a supplementary type check but never as the node gate.
+ 3. Inspect standalone imports/selectors, `OnPush`, typed inputs/outputs, template members, Less/assets, and planned dependency treatments.
+ 4. Search for unexplained NgRx, backend service, router, environment, HTTP, `any`, placeholders, or suppressed errors.
+ 
+ ## 8. Checks & Verification
+ 
+-Require zero compile exit, resolved child imports/selectors, exact contract agreement, complete file-plan disposition, and no unexpected production coupling. Never convert failure into warning.
++Require zero exit from Angular template-aware compilation, resolved child imports/selectors, exact contract agreement, complete file-plan disposition, and no unexpected production coupling. A plain `tsc` success is never sufficient; never convert failure into warning.
+ 
+ ## 9. Return Condition
+ 
+diff --git a/.superpowers/sdd/prompt.txt/task-4-report.md b/.superpowers/sdd/prompt.txt/task-4-report.md
+index 5ecf6c2..53c55e3 100644
+--- a/.superpowers/sdd/prompt.txt/task-4-report.md
++++ b/.superpowers/sdd/prompt.txt/task-4-report.md
+@@ -89,3 +89,44 @@ Inspected the scoped status/diff for Task 4. Task 4 creates only the component-t
+ ## Concerns
+ 
+ None.
++
++## Fix Round 1
++
++### Finding Addressed
++
++Replaced the permissive plain-`tsc` per-node gate with mandatory Angular template-aware compilation. The main agent and `node-compilation-verification` worker now require `npx ng build` or a repository Angular compiler target/configuration with equivalent template checking after every node. Plain `tsc` is explicitly supplementary and never sufficient. Upward progress remains blocked on any failed node gate.
++
++### Files Changed
++
++- `.agents/component-tree-migration/AGENT.md`
++- `.agents/component-tree-migration/subagents/node-compilation-verification.md`
++- `.superpowers/sdd/prompt.txt/task-4-report.md`
++
++### Validation Command
++
++Ran a focused PowerShell assertion over `.agents/component-tree-migration/` to verify the mandatory Angular build command/equivalent template compiler, rejection of plain `tsc` as a sufficient gate, upward blocking, exact 17/9 section counts, canonical paths, and Markdown heading spacing; the command also ran:
++
++```text
++git diff --check -- .agents/component-tree-migration
++```
++
++### Validation Result
++
++```text
++angularBuildMain=True
++equivalentTemplateCompiler=True
++plainTscSupplementaryOnly=True
++verifierAngularBuild=True
++verifierRejectsPlainTsc=True
++upwardBlock=True
++mainSections=True
++workerSections=True
++exactPaths=True
++markdownHeadingSpacing=True
++```
++
++`git diff --check` passed with no whitespace errors. The only emitted messages were Git's informational LF-to-CRLF working-copy warnings.
++
++### Concerns
++
++None.
+-- 
+2.55.0.windows.1
+

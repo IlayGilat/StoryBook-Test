@@ -1,0 +1,1415 @@
+# Codex Prompt — Build the StoryBook-Test Agent System
+
+You are GPT-5.6 Sol Medium working inside the `StoryBook-Test` repository.
+
+Your task is to create a complete, context-efficient agent system for migrating Angular 16 components from a separate legacy Angular application into this repository for high-fidelity Storybook + Playwright performance/stress testing.
+
+The system you create will later be executed mainly by an OpenCode implementer model with a context window of approximately 100K tokens.
+
+Therefore:
+
+> CONTEXT EFFICIENCY IS A FIRST-CLASS ARCHITECTURAL REQUIREMENT.
+
+The final agent system must be designed so that the implementer model reads only the instructions and artifacts required for the current migration stage.
+
+Do NOT create a giant globally-loaded agent instruction set.
+
+## 1. Core Operating Model
+
+The migration process is sequential.
+
+I will manually invoke one MAIN AGENT at a time.
+
+Example:
+
+```text
+Project Bootstrap Agent
+↓
+Source Analysis Agent
+↓
+Migration Planning Agent
+↓
+Component Scaffold Agent
+↓
+Component Tree Migration Agent
+↓
+Data Agent
+↓
+Harness Agent
+↓
+Benchmark Integration Agent
+↓
+Test Agent
+↓
+Fidelity Validation Agent
+↓
+Repair Agent when necessary
+```
+
+A MAIN AGENT is a migration stage.
+
+A SUB-AGENT is a narrow implementation worker owned by the currently running MAIN AGENT.
+
+The system must NOT act like one large autonomous agent that migrates the entire component in one run.
+
+Expected flow:
+
+```text
+Human invokes Main Agent A
+    ↓
+Main Agent A loads minimum required context
+    ↓
+Main Agent A delegates selected tasks to sub-agents
+    ↓
+Main Agent A integrates their work
+    ↓
+Main Agent A validates its own stage
+    ↓
+Main Agent A writes compact artifacts + handoff
+    ↓
+Main Agent A stops
+
+Human invokes Main Agent B
+    ↓
+Main Agent B loads only what it needs
+```
+
+Each stage must be independently resumable.
+
+## 2. Mandatory Use of Existing `subagent-driven-development` Skill
+
+This repository already contains a skill named:
+
+```text
+subagent-driven-development
+```
+
+You MUST find and inspect that existing skill before designing the agent system.
+
+You MUST use it as the standard delegation model for MAIN AGENTS that use SUB-AGENTS.
+
+Do NOT:
+- recreate this skill
+- duplicate its instructions
+- invent a competing delegation framework
+
+Instead:
+- reference the existing skill from relevant MAIN AGENT instructions
+- make MAIN AGENTS follow its workflow when delegating
+- keep sub-agent work narrow and bounded
+- have the parent MAIN AGENT remain responsible for integration and final validation
+
+The generated agent system should explicitly state that sub-agent delegation follows the existing `subagent-driven-development` skill.
+
+## 3. Existing Repository
+
+The repository currently resembles:
+
+```text
+StoryBook-Test/
+├── .storybook/
+│   ├── main.ts
+│   └── preview.ts
+├── docs/
+│   ├── BENCHMARKING.md
+│   └── COMPONENT_GUIDE.md
+├── scripts/
+│   ├── generate-component.mjs
+│   └── generate-component/
+├── src/
+│   ├── benchmark/
+│   │   ├── browser/
+│   │   ├── data-generator/
+│   │   ├── harness/
+│   │   ├── playwright/
+│   │   └── registry/
+│   └── components/
+│       ├── table/
+│       │   ├── data/
+│       │   ├── harness/
+│       │   ├── test/
+│       │   └── ui/
+│       └── tree-grid/
+│           ├── data/
+│           ├── harness/
+│           ├── test/
+│           └── ui/
+├── angular.json
+├── package.json
+├── playwright.config.ts
+└── tsconfig.json
+```
+
+Repository characteristics:
+- Angular 16
+- standalone components
+- `ChangeDetectionStrategy.OnPush`
+- Less
+- Storybook 8
+- Playwright
+- performance/stress benchmarking
+- FPS measurement
+- paint-cycle measurement
+- memory measurement
+- Chrome DevTools Protocol metrics
+- datasets up to roughly 100,000 items
+
+Each benchmarked top-level component follows:
+
+```text
+src/components/<component-name>/
+├── data/
+├── harness/
+├── test/
+└── ui/
+```
+
+## 4. IMPORTANT: Existing Top-Level Component Generator
+
+The repository already has a generator:
+
+```text
+npm run generate:component <component-name>
+```
+
+You MUST inspect:
+
+```text
+scripts/generate-component.mjs
+scripts/generate-component/
+```
+
+and use the actual repository implementation as the source of truth.
+
+The Component Scaffold Agent MUST use:
+
+```text
+npm run generate:component <component-name>
+```
+
+for scaffolding the TOP-LEVEL migrated benchmark component.
+
+If migrating `CustomerTableComponent` as the main benchmark target:
+
+```text
+npm run generate:component customer-table
+```
+
+should be used to create its standard benchmark structure.
+
+IMPORTANT:
+
+The generator is for the TOP-LEVEL migrated benchmark component only.
+
+Do NOT invoke the generator separately for every child component contained under that migrated component tree.
+
+Example:
+
+```text
+CustomerPage
+├── CustomerHeader
+├── CustomerTable
+│   └── CustomerRow
+└── StatusBadge
+```
+
+If `CustomerPage` is the benchmark target:
+
+```text
+npm run generate:component customer-page
+```
+
+is used once.
+
+Its child components should then be copied/adapted into the appropriate UI tree according to the migration plan.
+
+Do NOT generate `customer-header`, `customer-table`, `customer-row`, or `status-badge` as separate benchmark roots unless they are independently being migrated as top-level benchmark targets.
+
+The agent system must make this distinction explicit.
+
+## 5. Migration Philosophy
+
+The migration is NOT:
+
+```text
+Legacy Component
+↓
+AI interprets it
+↓
+AI rewrites approximate version
+```
+
+The migration should be:
+
+```text
+Legacy Component Tree
+↓
+Analyze
+↓
+Plan
+↓
+Scaffold benchmark root
+↓
+Copy faithfully
+↓
+Remove application boundaries
+↓
+Create explicit data contract
+↓
+Connect to benchmark harness
+↓
+Test
+↓
+Validate fidelity
+↓
+Repair concrete deviations
+```
+
+Optimize for:
+
+```text
+copy
+→ inspect
+→ mechanically adapt
+→ validate
+```
+
+rather than:
+
+```text
+reimplement from understanding
+```
+
+Fidelity is more important than elegance during migration.
+
+## 6. Context Window Constraint
+
+The OpenCode implementer model has approximately 100K context.
+
+Design the system around that constraint.
+
+Do NOT create a large root `AGENTS.md` containing every agent and workflow detail.
+
+Prefer either:
+
+### Option A — No root `AGENTS.md`
+
+or:
+
+### Option B — Tiny root `AGENTS.md`
+
+If repository conventions require one, keep it extremely small.
+
+It should contain only global rules such as:
+
+```text
+- Load the current stage's AGENT.md.
+- Load `.agents/shared/core-rules.md`.
+- Load only migration artifacts explicitly required by the current stage.
+- Use the existing `subagent-driven-development` skill for delegation.
+- Do not load unrelated stage instructions.
+- Do not modify the source production repository.
+- Stop when the current stage DoD is satisfied.
+```
+
+Target: roughly 500–1500 tokens maximum.
+
+Do NOT place full stage instructions in root `AGENTS.md`.
+
+## 7. Lazy Context Loading
+
+The generated system must explicitly enforce lazy loading.
+
+When running `Component Tree Migration Agent`, the implementer should ideally read:
+
+```text
+.agents/shared/core-rules.md
+.agents/component-tree-migration/AGENT.md
+.migrations/<component>/state.json
+.migrations/<component>/plan/migration-plan.md
+.migrations/<component>/plan/file-plan.json
+.migrations/<component>/analysis/component-tree.json
+relevant source files
+only the sub-agent instructions needed for current delegation
+```
+
+It should NOT automatically read:
+
+```text
+all other main agents
+all sub-agent definitions
+all docs
+all raw previous stage notes
+all previous conversations
+```
+
+Every MAIN AGENT must explicitly list:
+
+```text
+REQUIRED CONTEXT
+OPTIONAL CONTEXT
+DO NOT LOAD BY DEFAULT
+```
+
+## 8. Context Budget Guidance
+
+Recommended rough target:
+
+```text
+Global/core instructions       1–3k
+Current main agent             2–5k
+Current sub-agent              1–3k
+Migration artifacts            5–10k
+Relevant source code          30–55k
+Tool output / working room     remaining context
+```
+
+Do not build agent instructions that regularly consume tens of thousands of tokens before source code is loaded.
+
+## 9. Create This Agent Structure
+
+Create:
+
+```text
+.agents/
+├── README.md
+├── shared/
+│   ├── core-rules.md
+│   ├── handoff-contract.md
+│   └── state-schema.md
+├── project-bootstrap/
+│   ├── AGENT.md
+│   └── subagents/
+│       ├── dependency-sync.md
+│       ├── theme-migration.md
+│       ├── global-styles-migration.md
+│       ├── shared-assets-migration.md
+│       ├── shared-ui-migration.md
+│       └── storybook-build-verification.md
+├── source-analysis/
+│   ├── AGENT.md
+│   └── subagents/
+│       ├── component-tree-analyzer.md
+│       ├── smart-dependency-analyzer.md
+│       ├── child-component-analyzer.md
+│       ├── ngrx-dependency-analyzer.md
+│       ├── service-dependency-analyzer.md
+│       ├── input-output-analyzer.md
+│       ├── style-dependency-analyzer.md
+│       └── shared-dependency-analyzer.md
+├── migration-planning/
+│   ├── AGENT.md
+│   └── subagents/
+│       ├── dumb-boundary-planner.md
+│       ├── component-tree-planner.md
+│       ├── shared-component-reuse-planner.md
+│       ├── data-contract-planner.md
+│       └── migration-manifest-generator.md
+├── component-scaffold/
+│   ├── AGENT.md
+│   └── subagents/
+│       ├── generator-runner.md
+│       ├── folder-structure-verifier.md
+│       └── benchmark-registry-verifier.md
+├── component-tree-migration/
+│   ├── AGENT.md
+│   └── subagents/
+│       ├── template-migration.md
+│       ├── component-logic-migration.md
+│       ├── child-component-migration.md
+│       ├── input-output-adaptation.md
+│       ├── ngrx-adaptation.md
+│       ├── service-adaptation.md
+│       ├── router-adaptation.md
+│       ├── environment-adaptation.md
+│       ├── local-state-adaptation.md
+│       ├── side-effect-adaptation.md
+│       ├── pipe-directive-migration.md
+│       ├── style-migration.md
+│       └── node-compilation-verification.md
+├── data/
+│   ├── AGENT.md
+│   └── subagents/
+│       ├── model-extraction.md
+│       ├── zod-schema.md
+│       ├── data-factory.md
+│       ├── default-dataset.md
+│       ├── edge-case-dataset.md
+│       └── stress-dataset.md
+├── harness/
+│   ├── AGENT.md
+│   └── subagents/
+│       ├── benchmark-container.md
+│       ├── component-wiring.md
+│       ├── input-state.md
+│       ├── interaction-state.md
+│       ├── ready-state-integration.md
+│       └── storybook-story.md
+├── benchmark-integration/
+│   ├── AGENT.md
+│   └── subagents/
+│       ├── benchmark-registry-integration.md
+│       ├── performance-tracker-integration.md
+│       ├── paint-cycle-integration.md
+│       ├── sizing-event-integration.md
+│       └── benchmark-configuration-verification.md
+├── test/
+│   ├── AGENT.md
+│   └── subagents/
+│       ├── playwright-spec.md
+│       ├── interaction-scenario.md
+│       ├── stress-scenario.md
+│       ├── cdp-metrics.md
+│       └── runtime-error.md
+├── fidelity-validation/
+│   ├── AGENT.md
+│   └── subagents/
+│       ├── original-component-capture.md
+│       ├── storybook-component-capture.md
+│       ├── visual-parity.md
+│       ├── dom-parity.md
+│       ├── behavior-parity.md
+│       └── theme-parity.md
+└── repair/
+    ├── AGENT.md
+    └── subagents/
+        ├── build-repair.md
+        ├── import-repair.md
+        ├── ui-repair.md
+        ├── styling-repair.md
+        ├── data-repair.md
+        ├── harness-repair.md
+        ├── scenario-repair.md
+        └── fidelity-repair.md
+```
+
+Do NOT assume every sub-agent must run.
+
+The parent MAIN AGENT selects only relevant workers.
+
+## 10. Helper Documentation
+
+Create compact helper docs:
+
+```text
+docs/agents/
+├── WORKFLOW.md
+├── MIGRATION_ARTIFACTS.md
+├── FIDELITY.md
+├── COMPONENT_TREE_MIGRATION.md
+├── COMPONENT_BOUNDARIES.md
+└── TROUBLESHOOTING.md
+```
+
+Do NOT require agents to read all helper docs by default.
+
+## 11. Reusable Skills
+
+Before creating new skills, inspect the repository's existing skills.
+
+The repository already contains `subagent-driven-development`.
+
+Do NOT duplicate it.
+
+Only create migration-specific skills if they materially reduce repetition.
+
+Suggested skills:
+
+```text
+inspect-angular-component
+build-component-tree
+extract-angular-dependencies
+classify-smart-dependencies
+copy-angular-ui-tree
+convert-smart-to-dumb
+derive-data-contract
+generate-benchmark-data
+create-benchmark-harness
+create-storybook-story
+create-playwright-scenario
+validate-component-fidelity
+repair-migration
+```
+
+Follow existing repository skill conventions.
+
+Each skill should contain:
+
+```text
+When to use
+Inputs
+Outputs
+Procedure
+Constraints
+Stop conditions
+```
+
+Skills must not duplicate whole MAIN AGENT prompts.
+
+## 12. Migration Workspace
+
+For every migrated TOP-LEVEL benchmark component, use:
+
+```text
+.migrations/<component-name>/
+├── state.json
+├── source/
+│   └── source-files.json
+├── analysis/
+│   ├── component-tree.json
+│   ├── dependencies.json
+│   ├── smart-dependencies.json
+│   └── summary.md
+├── plan/
+│   ├── migration-plan.md
+│   ├── dumb-boundary.json
+│   ├── data-contract.json
+│   └── file-plan.json
+├── logs/
+│   ├── copied-files.json
+│   └── decisions.md
+├── validation/
+│   ├── build-report.md
+│   ├── parity-report.json
+│   └── fidelity-summary.md
+└── handoffs/
+    └── <stage-name>.md
+```
+
+Do not create every file upfront.
+
+Prefer JSON for structured information and concise Markdown for summaries.
+
+## 13. Migration State
+
+Create a compact documented schema.
+
+Example:
+
+```json
+{
+  "component": "customer-page",
+  "status": "in_progress",
+  "currentStage": "ui-migration",
+  "completedStages": [
+    "source-analysis",
+    "migration-planning",
+    "component-scaffold"
+  ],
+  "targetLocation": "src/components/customer-page",
+  "warnings": [],
+  "lastUpdatedBy": "ui-migration"
+}
+```
+
+Keep it resumable but simple.
+
+## 14. Handoff Contract
+
+Every MAIN AGENT writes a concise handoff:
+
+```text
+# Stage
+# Status
+# Inputs Used
+# Work Completed
+# Files Changed
+# Important Decisions
+# Known Deviations
+# Warnings
+# Validation
+# Next Stage Requirements
+# Recommended Next Main Agent
+```
+
+Handoffs summarize; they must not reproduce internal reasoning.
+
+The next stage should read:
+- state
+- latest relevant handoff
+- explicit artifacts required by its own AGENT.md
+
+It should not read every historical handoff by default.
+
+## 15. Main-Agent File Requirements
+
+Every `.agents/<stage>/AGENT.md` must include:
+
+```text
+Purpose
+When to invoke
+Required context
+Optional context
+Do not load by default
+Required prior artifacts
+Sub-agents available
+How to use subagent-driven-development
+Responsibilities
+Non-responsibilities
+Execution flow
+Allowed modifications
+Forbidden modifications
+Required outputs
+Validation
+Definition of Done
+Handoff
+Failure behavior
+```
+
+Avoid repeating global rules already present in `.agents/shared/core-rules.md`.
+
+## 16. Sub-Agent File Requirements
+
+Every sub-agent definition should contain:
+
+```text
+Goal
+When parent should use it
+Inputs
+Outputs
+Allowed scope
+Forbidden scope
+Procedure
+Checks
+Return condition
+```
+
+Keep sub-agent prompts small.
+
+The parent should load a sub-agent prompt only when delegating that sub-agent.
+
+## 17. Shared Core Rules
+
+Create `.agents/shared/core-rules.md`.
+
+Keep it intentionally small.
+
+Include only durable global rules:
+
+1. Production source is read-only.
+2. Preserve rendering fidelity before refactoring elegance.
+3. Use repository conventions as source of truth.
+4. Use `subagent-driven-development` for delegation.
+5. Load only current-stage context.
+6. Do not load unrelated agent instructions.
+7. Record architectural/behavioral deviations.
+8. Validate before handing off.
+9. Stop after current-stage DoD.
+10. Do not silently execute future stages.
+
+## 18. Main Agent Responsibilities
+
+### Project Bootstrap
+
+Prepare shared rendering infrastructure.
+
+Sub-agents:
+- Dependency Sync
+- Theme Migration
+- Global Styles Migration
+- Shared Assets Migration
+- Shared Component Tree Migration
+- Storybook Build Verification
+
+Do not migrate a specific benchmark target.
+
+DoD:
+- project builds
+- Storybook runs
+- shared visual environment works
+- common UI can use correct shared styling/assets
+
+### Source Analysis
+
+Primarily read-only.
+
+Sub-agents:
+- Component Tree Analyzer
+- Smart Dependency Analyzer
+- Child Component Analyzer
+- NgRx Dependency Analyzer
+- Service Dependency Analyzer
+- Input Output Analyzer
+- Style Dependency Analyzer
+- Shared Dependency Analyzer
+
+Analyze:
+- root
+- recursively rendered children
+- templates/styles
+- inputs/outputs
+- services
+- NgRx
+- router
+- environment/config
+- pipes/directives
+- packages
+- assets
+- shared UI
+- models
+- rendering-relevant local state
+- lifecycle logic
+- side effects
+- async rendering behavior
+
+DoD:
+- rendering tree understood
+- smart dependencies classified
+- fidelity risks documented
+- next stage does not need to rediscover architecture
+
+### Migration Planning
+
+Sub-agents:
+- Dumb Boundary Planner
+- Component Tree Planner
+- Shared Component Reuse Planner
+- Data Contract Planner
+- Migration Manifest Generator
+
+Decide:
+- top-level benchmark boundary
+- child components copied
+- shared components reused
+- what remains real
+- what becomes harness-controlled
+- data inputs
+- interaction outputs
+- source files required
+- target locations
+
+DoD:
+Another agent can execute the migration without architectural rediscovery.
+
+### Component Scaffold
+
+MANDATORY: use:
+
+```text
+npm run generate:component <component-name>
+```
+
+for the TOP-LEVEL benchmark target only.
+
+Sub-agents:
+- Generator Runner
+- Folder Structure Verifier
+- Benchmark Registry Verifier
+
+Do not use the generator for child components.
+
+DoD:
+- root benchmark scaffold exists
+- generated structure matches repository standards
+- child benchmark roots were not accidentally generated
+
+### Component Tree Migration
+
+Purpose:
+
+Migrate the planned component tree in strict CHILD-TO-PARENT order while adapting each component from production-coupled Angular code into the target benchmark-compatible presentational form.
+
+This stage combines faithful UI copying with smart-dependency adaptation.
+
+Sub-agents:
+- Template Migration
+- Component Logic Migration
+- Child Component Migration
+- Input Output Adaptation
+- NgRx Adaptation
+- Service Adaptation
+- Router Adaptation
+- Environment Adaptation
+- Local State Adaptation
+- Side Effect Adaptation
+- Pipe Directive Migration
+- Style Migration
+- Node Compilation Verification
+
+Core rule:
+
+> DISCOVER TOP-DOWN. IMPLEMENT BOTTOM-UP.
+
+The component tree is analyzed from parent to child, but creation/adaptation is performed from deepest child to root using post-order traversal.
+
+Example source tree:
+
+```text
+Root
+├── ChildA
+│   └── GrandchildA1
+└── ChildB
+```
+
+Discovery order is conceptually:
+
+```text
+Root
+→ ChildA
+→ GrandchildA1
+→ ChildB
+```
+
+Preferred implementation order is:
+
+```text
+GrandchildA1
+→ ChildA
+→ ChildB
+→ Root
+```
+
+The root component is migrated last.
+
+For EACH component node:
+
+```text
+1. Copy the source implementation faithfully.
+2. Copy/adapt its template.
+3. Copy/adapt its styles.
+4. Ensure required migrated child components already exist.
+5. Adapt production dependencies according to the migration plan.
+6. Establish the migrated component's stable inputs/outputs/local-state contract.
+7. Compile/verify that node.
+8. Record deviations.
+9. Only then move upward to its parent.
+```
+
+A parent must not be finalized before all required migrated children expose stable migrated contracts.
+
+Preserve whenever possible:
+
+- HTML/template structure
+- DOM structure
+- Less/CSS
+- class names
+- child component composition
+- pipes/directives
+- rendering calculations
+- rendering-relevant local state
+- presentational interactions
+- visual behavior
+
+Application-boundary adaptations may include:
+
+```text
+this.store.select(...) -> @Input() / explicit data contract
+store.dispatch(...) -> @Output() / harness-controlled event
+service-loaded data -> @Input()
+backend mutation -> @Output() / harness action
+router-derived value -> @Input()
+feature flag -> @Input()
+permission state -> @Input()
+environment/config value -> @Input() or shared benchmark config
+```
+
+Do NOT:
+
+- redesign markup just to simplify migration
+- flatten the component tree unnecessarily
+- replace real child UI with placeholders when the real child can be migrated
+- rewrite working rendering logic from scratch
+- migrate the root before children are ready
+- leave production application dependencies unresolved when finishing a node
+- generate separate benchmark roots for child components unless they are independently requested as benchmark targets
+
+Node-level validation is mandatory.
+
+After EACH migrated node:
+
+```text
+1. compile or type-check the relevant target
+2. verify imports
+3. verify migrated child dependencies
+4. verify the adapted input/output contract
+5. verify no unexpected production dependency remains
+6. only then proceed to the parent
+```
+
+DoD:
+
+- every planned child node was migrated before its parent
+- the root was migrated last
+- every node has a stable benchmark-compatible contract
+- production application dependencies are adapted out
+- the component tree remains structurally faithful
+- the full migrated `ui/` tree compiles
+- architectural/behavioral deviations are documented
+- the root is ready for Data and Harness stages
+
+### Data
+
+Sub-agents:
+- Model Extraction
+- Zod Schema
+- Data Factory
+- Default Dataset
+- Edge Case Dataset
+- Stress Dataset
+
+Reuse `src/benchmark/data-generator/`.
+
+Use deterministic factories.
+
+DoD:
+- all UI data produced locally
+- representative datasets exist
+- stress datasets exist where meaningful
+
+### Harness
+
+Sub-agents:
+- Benchmark Container
+- Component Wiring
+- Input State
+- Interaction State
+- Ready State Integration
+- Storybook Story
+
+Harness owns:
+- benchmark state
+- data selection
+- callbacks
+- interaction orchestration
+- ready state
+- sizing
+- paint-cycle coordination
+- Storybook stories
+
+Use existing `BaseBenchmarkContainerComponent` where appropriate.
+
+DoD:
+- Storybook renders UI
+- expected interactions work
+- benchmark lifecycle integrates correctly
+- UI remains benchmark-unaware
+
+### Benchmark Integration
+
+Sub-agents:
+- Benchmark Registry Integration
+- Performance Tracker Integration
+- Paint Cycle Integration
+- Sizing Event Integration
+- Benchmark Configuration Verification
+
+Use existing benchmark engine.
+
+DoD:
+Migrated component runs as a first-class benchmark target.
+
+### Test
+
+Sub-agents:
+- Playwright Spec
+- Interaction Scenario
+- Stress Scenario
+- CDP Metrics
+- Runtime Error
+
+Use existing Playwright conventions.
+
+DoD:
+- deterministic tests run
+- metrics collectible
+- runtime errors surfaced
+- scenarios represent real usage patterns
+
+### Fidelity Validation
+
+Sub-agents:
+- Original Component Capture
+- Storybook Component Capture
+- Visual Parity
+- DOM Parity
+- Behavior Parity
+- Theme Parity
+
+Compare where available:
+- screenshots
+- visible text
+- DOM regions
+- element counts
+- dimensions
+- interactions
+- state changes
+- icons
+- fonts
+- spacing
+- theme
+- runtime errors
+
+Classify deviations:
+- critical
+- major
+- minor
+- accepted
+
+DoD:
+There is concrete evidence showing whether the benchmark is representative of the original.
+
+### Repair
+
+Repair only concrete reported failures.
+
+Sub-agents:
+- Build Repair
+- Import Repair
+- UI Repair
+- Styling Repair
+- Data Repair
+- Harness Repair
+- Scenario Repair
+- Fidelity Repair
+
+Every repair must tie back to a build report, test failure, runtime error, or parity report.
+
+DoD:
+- targeted issue fixed or accepted
+- relevant validation rerun
+- no broad unnecessary rewrite
+
+## Mandatory Component Traversal Invariant
+
+This is a hard migration rule.
+
+### Discovery / Scanning Order
+
+Scanning MUST happen from parent to child.
+
+Start from the requested top-level benchmark target and recursively discover rendered descendants and their dependencies.
+
+The scanner must preserve:
+
+```text
+parent-child relationships
+depth
+shared descendants
+conditional children
+dependency relationships
+```
+
+This top-down scan is necessary because the parent determines which children are actually part of the rendering workload.
+
+### Creation / Adaptation Order
+
+Creation MUST happen from child to parent.
+
+Use a post-order traversal.
+
+For:
+
+```text
+Root
+├── ChildA
+│   └── GrandchildA1
+└── ChildB
+```
+
+the implementation order should be:
+
+```text
+GrandchildA1
+→ ChildA
+→ ChildB
+→ Root
+```
+
+A migrated parent should consume already-migrated child contracts.
+
+### Adapt During Creation
+
+Do not perform:
+
+```text
+copy entire tree
+then later dumbify entire tree
+```
+
+Instead perform:
+
+```text
+copy child
+→ adapt child
+→ compile child
+→ move to parent
+```
+
+Each component must be converted at the point it is created.
+
+Examples:
+
+```text
+this.store.select(...) -> @Input()
+store.dispatch(...) -> @Output()
+service-loaded data -> @Input()
+router state -> @Input()
+application side effect -> emitted event / harness action
+```
+
+### Why
+
+This improves:
+
+- context efficiency
+- correctness of parent contracts
+- compile-time locality
+- fault isolation
+- reuse of already-adapted children
+- stability with a ~100K-context implementer model
+
+The root/top-level benchmark component is always created last.
+
+## 19. Fidelity Classification
+
+Classify dependencies:
+
+### Presentation Dependency
+Keep/copy.
+
+Examples:
+- child component
+- pipe
+- directive
+- formatter
+- Less file
+- icon
+
+### Data Dependency
+Convert to explicit input/data contract.
+
+Examples:
+- selector result
+- loaded model
+- rendering configuration
+
+### Application Control Dependency
+Move to harness/output.
+
+Examples:
+- dispatch
+- navigation
+- API mutation
+- global modal
+
+### Environment Dependency
+Replace with controlled benchmark value.
+
+Examples:
+- current user
+- permissions
+- feature flag
+- locale
+- route parameter
+
+## 20. Nested Smart Component Rule
+
+Do not automatically turn every nested smart component into an independent dumb API.
+
+Prefer:
+
+```text
+Story / Harness
+      ↓
+Top-Level Dumb Boundary
+      ↓
+Preserved Internal UI Tree
+```
+
+over:
+
+```text
+Story
+↓
+huge flat input contract
+↓
+every child independently rewritten
+```
+
+If a child can remain structurally intact after production dependencies are removed, keep it intact.
+
+## 21. Shared Component Reuse
+
+Analysis/planning must check whether required shared UI already exists in the stress repository.
+
+Prefer reuse where fidelity is preserved.
+
+Do not duplicate blindly.
+
+Do not force reuse if the existing migrated version materially differs from the source behavior required by the current benchmark.
+
+## 22. Validation Checkpoints
+
+Validate incrementally:
+
+```text
+after generator scaffold
+after each child-node copy/adaptation
+after import fixes
+after each node adaptation
+after data setup
+after harness wiring
+after Storybook rendering
+after benchmark integration
+after Playwright tests
+after fidelity validation
+```
+
+A stage should fix failures it owns before handing off.
+
+## 23. Decision Logging
+
+Record only meaningful deviations.
+
+For each architectural/behavioral deviation, record:
+- what changed
+- why
+- expected fidelity impact
+- temporary or accepted
+
+Do not bloat logs with trivial import-path changes.
+
+## 24. Concurrency
+
+Follow the existing `subagent-driven-development` skill.
+
+Additionally, sub-agents may run in parallel only when write scopes do not overlap.
+
+Safe:
+
+```text
+analyze styles
+analyze NgRx
+analyze services
+```
+
+Unsafe:
+
+```text
+two sub-agents editing the same component TypeScript file
+```
+
+The MAIN AGENT owns integration and conflict prevention.
+
+## 25. Source Application
+
+The original Angular application is external and read-only.
+
+The agent system must support:
+- direct read-only source path access, or
+- copied source files supplied to the migration workspace
+
+If required source is missing:
+- produce a clear missing-input report
+- do not invent implementation
+
+## 26. Repository Inspection Before Generation
+
+Before creating the agent system, inspect:
+
+```text
+docs/BENCHMARKING.md
+docs/COMPONENT_GUIDE.md
+scripts/generate-component.mjs
+scripts/generate-component/
+src/benchmark/
+existing components under src/components/
+existing project skills
+the existing subagent-driven-development skill
+any existing AGENTS.md or agent conventions
+```
+
+Use the actual repository as source of truth.
+
+If this prompt conflicts with working repository mechanics:
+1. preserve the intent of this prompt
+2. follow working repository conventions
+3. document meaningful differences
+
+## 27. Prompt Quality
+
+Do not write generic persona prompts.
+
+Agent files should be operational.
+
+When I invoke:
+
+```text
+Use the Source Analysis Agent for <component>.
+```
+
+it should know:
+- what to read
+- what artifacts to inspect
+- which sub-agents may help
+- how to use `subagent-driven-development`
+- what it owns
+- what it must not modify
+- what files it must produce
+- how it validates
+- when it stops
+
+Likewise, `Use the Component Tree Migration Agent for <component>` must not cause it to load all other agents or begin Data/Harness/Test work.
+
+## 28. Avoid Agent Explosion
+
+Many sub-agent definitions exist.
+
+That does NOT mean all run every time.
+
+Examples:
+- no NgRx -> do not use NgRx Removal
+- no custom directives -> do not use Pipe/Directive Migration
+- no router usage -> do not use Router Removal
+- no visual mismatch -> do not use Styling Repair
+
+Prefer the minimum useful delegation set.
+
+## 29. Final Deliverables
+
+Create:
+1. `.agents/`
+2. small shared rules
+3. optional tiny root `AGENTS.md` only if useful/required
+4. compact helper docs
+5. migration-specific reusable skills
+6. migration state/handoff conventions
+7. stage-specific MAIN AGENT files
+8. narrow SUB-AGENT files
+
+Do NOT migrate an actual component during this task.
+
+The output is the migration agent system itself.
+
+## 30. Final Verification
+
+Before finishing, verify:
+
+1. Global instructions are small.
+2. Root `AGENTS.md`, if present, is minimal.
+3. No MAIN AGENT requires loading all other agents.
+4. Every MAIN AGENT includes Required / Optional / Do Not Load context.
+5. Every MAIN AGENT has a clear Definition of Done.
+6. Every MAIN AGENT has explicit non-responsibilities.
+7. Relevant MAIN AGENTS explicitly use the existing `subagent-driven-development` skill.
+8. The skill was referenced, not duplicated.
+9. The Component Scaffold Agent uses `npm run generate:component`.
+10. The generator is used only for the TOP-LEVEL migrated benchmark target.
+11. Child components under that target are copied/adapted, not separately scaffolded as benchmark roots.
+12. Migration artifacts are concise.
+13. Handoffs summarize instead of reproducing reasoning.
+14. Repository conventions were inspected and respected.
+15. Agent and sub-agent names are consistent.
+16. Scanning is explicitly parent-to-child.
+17. Component creation/adaptation is explicitly child-to-parent.
+18. Each child is fully adapted and validated before its parent is finalized.
+19. The resulting design is practical for a ~100K-token OpenCode implementer.
+
+At the end, provide a concise summary containing:
+- files/folders created
+- important repository conventions discovered
+- how `subagent-driven-development` was integrated
+- how the top-level generator is used
+- assumptions or deviations
+
+Do not perform an actual component migration.
