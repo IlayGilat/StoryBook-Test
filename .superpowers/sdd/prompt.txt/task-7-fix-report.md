@@ -31,3 +31,13 @@ The detailed stage specifications and enumerated prompt names are authoritative 
 ## Concerns
 
 None. The prompt-count ruling follows the explicit final-verification instruction; if that authority is later reversed, the catalog total and any omitted or extra prompt files will need reconciliation as recorded in the ledger.
+
+## Canonical Template Correction
+
+Final verification found that the two Phase 6 main prompts and their 14 sub-agent prompts had correct section counts but non-canonical heading names. The files were rewritten without changing approved operational behavior.
+
+- Main prompts: PASS — exact Module 02 names and order for all 17 sections, including explicit `Optional Context` and `Do Not Load by Default`.
+- Sub-agent prompts: PASS — exact Module 02 names and order for all nine sections.
+- Semantics: PASS — lowercase parity statuses, stable parity IDs, deterministic repair-local IDs, calibrated screenshot policy, read-only legacy source, surgical repair scope, and focused-then-stage validation remain present.
+- Inventory: PASS — 11 main agents, 71 stage sub-agent prompts, 13 migration skills plus the delegation skill, and six helper documents.
+- Whitespace and scope: PASS — `git diff --check` passes; no `src/` or `.migrations/` files changed.

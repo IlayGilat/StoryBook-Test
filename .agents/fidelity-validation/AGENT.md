@@ -4,18 +4,11 @@
 
 Validate that a migrated Storybook benchmark faithfully reproduces the authorized legacy Angular component for equivalent controlled data. This stage measures visual, normalized DOM, computed-style, behavior, and theme parity; it does not repair the component.
 
-## 2. Trigger
+## 2. When to Invoke
 
 Invoke with `Use the Fidelity Validation Agent for <component-name>` only after `.migrations/<component>/handoffs/test.md` exists and the test stage is complete.
 
-## 3. Preconditions
-
-- The component name identifies one top-level target under `src/components/<component>/`.
-- `.migrations/<component>/state.json` and `.migrations/<component>/logs/decisions.md` exist.
-- The legacy build, route, or fixture is authorized and can be observed without modifying its repository, data, or configuration.
-- Equivalent legacy and Storybook states can be established. If a required baseline or authority is missing, mark the stage `blocked` and stop rather than inventing evidence.
-
-## 4. Required Context
+## 3. Required Context
 
 Load only:
 
@@ -30,22 +23,83 @@ Load only:
 
 Load one worker prompt only when that worker is invoked.
 
-## 5. Optional Context
+## 4. Optional Context
 
 Load `docs/agents/FIDELITY.md` when capture, comparison, severity, or screenshot-policy detail is needed. Load only source, story, test, token, or prior validation files that directly explain an observed difference.
 
-## 6. Context Boundaries
+## 5. Do Not Load by Default
 
 Do not preload other stage prompts, unrelated components, historical handoffs, raw notes, or all worker prompts. Treat the external legacy source as strictly read-only. Store captures and reports only in StoryBook-Test under `.migrations/<component>/validation/`; never write evidence into the legacy repository.
 
-## 7. Inputs
+## 6. Required Prior Artifacts
+
+### Preconditions
+
+- The component name identifies one top-level target under `src/components/<component>/`.
+- `.migrations/<component>/state.json` and `.migrations/<component>/logs/decisions.md` exist.
+- The legacy build, route, or fixture is authorized and can be observed without modifying its repository, data, or configuration.
+- Equivalent legacy and Storybook states can be established. If a required baseline or authority is missing, mark the stage `blocked` and stop rather than inventing evidence.
+
+### Comparison inputs
 
 - Component name and target story.
 - Legacy build identity or commit, route, and authorized capture method.
 - Matching viewport, device scale, browser, theme, locale, timezone, fonts, deterministic dataset, scroll position, animation policy, and interaction-state matrix.
 - Test-stage handoff and any existing approved deviations.
 
-## 8. Outputs
+## 7. Sub-Agents Available
+
+Dispatch only the narrow worker needed:
+
+1. `original-component-capture` captures legacy screenshots, DOM, styles, and environment metadata.
+2. `storybook-component-capture` repeats the identical protocol for Storybook.
+3. `visual-parity` evaluates full-page and component-bounded image evidence.
+4. `dom-parity` compares normalized structure, attributes, classes, ARIA, text, and computed styles.
+5. `behavior-parity` replays applicable interactions and emitted outcomes.
+6. `theme-parity` compares tokens, resolved colors, and typography in every supported theme.
+
+## 8. Subagent Delegation Workflow
+
+Delegate only through `.agents/skills/subagent-driven-development/SKILL.md`. Concurrent workers may write only to disjoint evidence directories. Workers never edit `state.json`, shared reports, decisions, or handoffs. The parent owns integration, stable finding assignment, state, decisions, the final validation commands, and the handoff.
+
+## 9. Responsibilities
+
+### Parent ownership
+
+- Define and enforce the comparison matrix and identical capture protocol.
+- Integrate worker evidence and classify every material deviation.
+- Assign stable finding IDs and never renumber existing IDs.
+- Own shared reports, state, decisions, validation, and handoff.
+
+### Evidence and finding contract
+
+Each finding keeps a stable ID such as `FID-VIS-001`, `FID-DOM-001`, `FID-BEH-001`, or `FID-THM-001`; never renumber an existing ID. Record dimension, selector/state/theme, expected and actual values, legacy evidence path, Storybook evidence path, severity, status, rationale, and resolution reference.
+
+Allowed severities are `CRITICAL`, `MAJOR`, `MINOR`, and `ACCEPTED`. Allowed statuses are the canonical lowercase values `open`, `accepted`, and `resolved`. `ACCEPTED` severity and `accepted` status require a matching `logs/decisions.md` reference. A `resolved` finding retains its original evidence and links to the repair handoff, commit, command result, or replacement capture that proved resolution. Zero deviations may remain unclassified.
+
+## 10. Non-Responsibilities
+
+Do not repair, migrate, redesign, broadly refactor, or perform work owned by another stage. Do not change the external legacy application or invoke the next stage.
+
+## 11. Execution Flow
+
+1. Validate prerequisites, set `currentStage` to `fidelity-validation`, `status` to `in_progress`, and update `lastUpdatedBy` and `updatedAt` in schema order.
+2. Define the comparison matrix and identical capture protocol before capturing either side.
+3. Capture the legacy and Storybook sides without changing the legacy source or masking ordinary differences.
+4. Compare screenshots, normalized DOM, computed styles, behavior, and themes using evidence rather than impressions.
+5. Integrate worker results, assign stable findings, and classify every material deviation.
+6. Write the parity report and summary. Record any authorized accepted deviation in `logs/decisions.md`.
+7. Run the relevant parity checks, complete state and handoff, then stop. Never invoke repair or advance stages automatically.
+
+## 12. Allowed Modifications
+
+Write captures and reports only in StoryBook-Test under `.migrations/<component>/validation/`. The parent may also update the component migration state, decisions log, and fidelity-validation handoff named in Required Outputs.
+
+## 13. Forbidden Modifications
+
+Never modify the external legacy repository, migrated component source, or tests during this validation stage. Workers must not edit `state.json`, shared reports, decisions, or handoffs. Do not mask ordinary differences or alter comparison policy to manufacture parity.
+
+## 14. Required Outputs
 
 The parent agent creates and integrates:
 
@@ -57,52 +111,13 @@ The parent agent creates and integrates:
 
 Meaningful accepted deviations are also recorded in `.migrations/<component>/logs/decisions.md` with reason, measured impact, and `Accepted` status.
 
-## 9. Workers
-
-Dispatch only the narrow worker needed:
-
-1. `original-component-capture` captures legacy screenshots, DOM, styles, and environment metadata.
-2. `storybook-component-capture` repeats the identical protocol for Storybook.
-3. `visual-parity` evaluates full-page and component-bounded image evidence.
-4. `dom-parity` compares normalized structure, attributes, classes, ARIA, text, and computed styles.
-5. `behavior-parity` replays applicable interactions and emitted outcomes.
-6. `theme-parity` compares tokens, resolved colors, and typography in every supported theme.
-
-## 10. Delegation and Ownership
-
-Delegate only through `.agents/skills/subagent-driven-development/SKILL.md`. Concurrent workers may write only to disjoint evidence directories. Workers never edit `state.json`, shared reports, decisions, or handoffs. The parent owns integration, stable finding assignment, state, decisions, the final validation commands, and the handoff.
-
-## 11. Procedure
-
-1. Validate prerequisites, set `currentStage` to `fidelity-validation`, `status` to `in_progress`, and update `lastUpdatedBy` and `updatedAt` in schema order.
-2. Define the comparison matrix and identical capture protocol before capturing either side.
-3. Capture the legacy and Storybook sides without changing the legacy source or masking ordinary differences.
-4. Compare screenshots, normalized DOM, computed styles, behavior, and themes using evidence rather than impressions.
-5. Integrate worker results, assign stable findings, and classify every material deviation.
-6. Write the parity report and summary. Record any authorized accepted deviation in `logs/decisions.md`.
-7. Run the relevant parity checks, complete state and handoff, then stop. Never invoke repair or advance stages automatically.
-
-## 12. Evidence and Finding Contract
-
-Each finding keeps a stable ID such as `FID-VIS-001`, `FID-DOM-001`, `FID-BEH-001`, or `FID-THM-001`; never renumber an existing ID. Record dimension, selector/state/theme, expected and actual values, legacy evidence path, Storybook evidence path, severity, status, rationale, and resolution reference.
-
-Allowed severities are `CRITICAL`, `MAJOR`, `MINOR`, and `ACCEPTED`. Allowed statuses are the canonical lowercase values `open`, `accepted`, and `resolved`. `ACCEPTED` severity and `accepted` status require a matching `logs/decisions.md` reference. A `resolved` finding retains its original evidence and links to the repair handoff, commit, command result, or replacement capture that proved resolution. Zero deviations may remain unclassified.
-
-## 13. Validation
+## 15. Validation
 
 Use Playwright screenshot assertions with `threshold: 0.1` and `maxDiffPixelRatio: 0.002`. These are an initial calibrated triage policy, not permission to ignore coherent visible differences. Review and classify text shifts, missing elements, interaction-state changes, or other coherent regions even when the assertion passes. Change the policy only from stable approved baseline evidence through an explicit recorded policy decision; never relax a single test ad hoc, strip alpha, mask ordinary edge pixels, or add a second custom channel metric.
 
 Normalize only documented volatile framework attributes, generated IDs, comments, and approved nondeterminism. Preserve semantic elements, order, classes, ARIA, text, and stable attributes. Record commands, configurations, and results for all comparisons.
 
-## 14. State Updates
-
-The parent serializes `.migrations/<component>/state.json` in the shared schema's field order with two-space indentation and a trailing newline. On success, append `fidelity-validation` once to `completedStages`, retain canonical order, keep `currentStage` as `fidelity-validation`, and set the migration status according to the schema rather than claiming a later stage. On missing evidence use `blocked`; on failed validation use `failed`. Handoff status and timestamp must match the final state update.
-
-## 15. Handoff
-
-Write `.migrations/<component>/handoffs/fidelity-validation.md` in the exact shared handoff section order. Cite the parity report, summary, capture evidence, validation commands, all open Critical/Major IDs, accepted-deviation decision references, and risks. Recommend repair only when explicit findings require it; otherwise recommend `None`. Never invoke the next stage.
-
-## 16. Definition of Done
+## 16. Definition of Done (DoD)
 
 - Matching legacy and Storybook screenshots exist for every required state.
 - Normalized DOM and computed-style comparisons ran.
@@ -111,6 +126,16 @@ Write `.migrations/<component>/handoffs/fidelity-validation.md` in the exact sha
 - `parity-report.json` and `fidelity-summary.md` agree and contain zero unclassified deviations.
 - State and `fidelity-validation.md` handoff are complete and consistent.
 
-## 17. Stop Conditions
+## 17. Handoff & Failure Behavior
+
+### State updates
+
+The parent serializes `.migrations/<component>/state.json` in the shared schema's field order with two-space indentation and a trailing newline. On success, append `fidelity-validation` once to `completedStages`, retain canonical order, keep `currentStage` as `fidelity-validation`, and set the migration status according to the schema rather than claiming a later stage. On missing evidence use `blocked`; on failed validation use `failed`. Handoff status and timestamp must match the final state update.
+
+### Handoff
+
+Write `.migrations/<component>/handoffs/fidelity-validation.md` in the exact shared handoff section order. Cite the parity report, summary, capture evidence, validation commands, all open Critical/Major IDs, accepted-deviation decision references, and risks. Recommend repair only when explicit findings require it; otherwise recommend `None`. Never invoke the next stage.
+
+### Failure and stop conditions
 
 Stop `BLOCKED` when the authorized legacy baseline, matching controlled state, required fonts/assets, or comparison authority is unavailable. Stop `FAILED` when validation cannot complete or Critical/Major findings remain open; report them without repairing them. Stop `COMPLETED` immediately when this stage's Definition of Done is satisfied. Do not migrate, redesign, broadly refactor, repair, or perform work owned by another stage.
