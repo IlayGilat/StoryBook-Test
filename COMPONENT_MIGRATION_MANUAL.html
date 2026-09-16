@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Step-by-step operator manual for adding legacy Angular components to the StoryBook-Test stress-testing harness with OpenCode agents.">
+  <title>StoryBook-Test · Component Migration Manual</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23081724'/%3E%3Cpath d='M17 18h30v9H26v7h17v9H26v3h21v9H17z' fill='%236ee7d8'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e8f1f5;
+      --muted: #91a6b2;
+      --faint: #607985;
+      --paper: #07131c;
+      --panel: #0c1d28;
+      --panel-2: #102733;
+      --line: #21404d;
+      --accent: #6ee7d8;
+      --accent-2: #f6c86b;
+      --danger: #ff8b8b;
+      --good: #74e39a;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        radial-gradient(circle at 80% 0%, rgba(110, 231, 216, .09), transparent 32rem),
+        linear-gradient(180deg, #061019, var(--paper) 42rem);
+      color: var(--ink);
+      font: 16px/1.65 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    a { color: var(--accent); }
+    code, kbd, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    code {
+      padding: .1rem .35rem;
+      border: 1px solid rgba(110, 231, 216, .18);
+      border-radius: 6px;
+      background: rgba(110, 231, 216, .08);
+      color: #b9fff6;
+      font-size: .9em;
+    }
+
+    .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 20px;
+      border-right: 1px solid var(--line);
+      background: rgba(5, 16, 24, .9);
+      backdrop-filter: blur(16px);
+      overflow-y: auto;
+    }
+
+    .brand { display: flex; gap: 12px; align-items: center; margin-bottom: 28px; }
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #06201f;
+      font-weight: 900;
+      box-shadow: 0 0 28px rgba(110, 231, 216, .25);
+    }
+    .brand strong { display: block; letter-spacing: -.02em; }
+    .brand small { display: block; color: var(--muted); font-size: .75rem; }
+
+    .progress-label { display: flex; justify-content: space-between; color: var(--muted); font-size: .78rem; }
+    .progress-track { height: 5px; margin: 8px 0 24px; border-radius: 99px; background: #142b35; overflow: hidden; }
+    .progress-fill { width: 0; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .2s ease; }
+
+    nav a {
+      display: block;
+      margin: 3px 0;
+      padding: 8px 10px;
+      border-left: 2px solid transparent;
+      border-radius: 0 8px 8px 0;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: .88rem;
+    }
+    nav a:hover, nav a.active { border-left-color: var(--accent); background: rgba(110, 231, 216, .07); color: var(--ink); }
+    nav .nav-group { margin: 18px 10px 7px; color: var(--faint); font-size: .68rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+
+    main { width: min(1120px, 100%); padding: 54px clamp(24px, 6vw, 84px) 100px; }
+    .eyebrow { margin: 0 0 10px; color: var(--accent); font-size: .78rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1 { max-width: 830px; margin: 0; font-size: clamp(2.45rem, 6vw, 5.4rem); line-height: .98; letter-spacing: -.06em; }
+    .lede { max-width: 760px; margin: 24px 0 30px; color: #b9c9d0; font-size: 1.12rem; }
+    h2 { margin: 0 0 18px; font-size: clamp(1.75rem, 3vw, 2.7rem); line-height: 1.1; letter-spacing: -.04em; }
+    h3 { margin: 0 0 8px; font-size: 1.12rem; }
+    p { margin: 0 0 14px; }
+    section { scroll-margin-top: 28px; margin-top: 88px; }
+
+    .hero-meta, .cards, .stage-grid, .rules { display: grid; gap: 14px; }
+    .hero-meta { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 830px; }
+    .stat, .card, .stage, .rule, .callout {
+      border: 1px solid var(--line);
+      background: linear-gradient(145deg, rgba(16, 39, 51, .94), rgba(9, 27, 38, .96));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .stat { padding: 18px; }
+    .stat strong { display: block; color: var(--accent); font-size: 1.55rem; }
+    .stat span { color: var(--muted); font-size: .83rem; }
+
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card { padding: 22px; }
+    .card p:last-child { margin-bottom: 0; }
+    .stage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stage { position: relative; padding: 24px; overflow: hidden; }
+    .stage::before {
+      content: attr(data-step);
+      position: absolute;
+      top: -15px;
+      right: 12px;
+      color: rgba(110, 231, 216, .08);
+      font-size: 5.8rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .stage-head { display: flex; align-items: center; gap: 10px; padding-right: 54px; }
+    .badge { padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--accent-2); font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .stage ul, .card ul { margin: 12px 0 0; padding-left: 20px; color: #b9c9d0; }
+    .stage li, .card li { margin: 5px 0; }
+    .agent-prompt { margin-top: 18px; }
+    .agent-prompt-label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--accent);
+      font-size: .74rem;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .agent-prompt .command { margin: 0; font-size: .88rem; }
+
+    .command {
+      position: relative;
+      margin: 14px 0;
+      padding: 16px 54px 16px 18px;
+      border: 1px solid #285264;
+      border-radius: 12px;
+      background: #061019;
+      color: #c7fff8;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+    .copy {
+      position: absolute;
+      top: 9px;
+      right: 9px;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--ink);
+      cursor: pointer;
+      font: inherit;
+      font-size: .72rem;
+    }
+    .copy:hover { border-color: var(--accent); }
+
+    .callout { margin: 20px 0; padding: 20px 22px; border-left: 4px solid var(--accent); }
+    .callout.warning { border-left-color: var(--accent-2); }
+    .callout.danger { border-left-color: var(--danger); }
+    .callout strong { display: block; margin-bottom: 5px; }
+
+    .flow {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(3, 13, 20, .62);
+      overflow-x: auto;
+    }
+    .flow span { flex: 0 0 auto; padding: 8px 11px; border-radius: 9px; background: var(--panel-2); }
+    .flow b { color: var(--accent); }
+
+    table { width: 100%; border-collapse: collapse; border: 1px solid var(--line); background: rgba(8, 25, 35, .82); }
+    th, td { padding: 13px 15px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--accent); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; }
+    td { color: #bed0d7; }
+    .table-wrap { overflow-x: auto; border-radius: 14px; }
+
+    .rules { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .rule { padding: 19px; }
+    .rule strong { display: block; margin-bottom: 5px; color: var(--accent-2); }
+
+    .checklist { display: grid; gap: 10px; }
+    .check {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(13, 35, 46, .72);
+      cursor: pointer;
+    }
+    .check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--accent); }
+    .check:has(input:checked) { opacity: .62; }
+    .check:has(input:checked) span { text-decoration: line-through; }
+
+    .mobile-nav { display: none; }
+    footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+
+    @media (max-width: 900px) {
+      .layout { display: block; }
+      .sidebar { display: none; }
+      .mobile-nav { display: block; position: sticky; top: 0; z-index: 10; padding: 10px 16px; border-bottom: 1px solid var(--line); background: rgba(5, 16, 24, .94); }
+      .mobile-nav select { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--ink); }
+      main { padding-top: 42px; }
+      .rules { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 660px) {
+      .hero-meta, .cards, .stage-grid, .rules { grid-template-columns: 1fr; }
+      h1 { font-size: 2.7rem; }
+      main { padding-inline: 18px; }
+      section { margin-top: 64px; }
+    }
+    @media print {
+      :root { color-scheme: light; }
+      body { background: white; color: #16232a; }
+      .layout { display: block; }
+      .sidebar, .mobile-nav, .copy { display: none; }
+      main { width: 100%; padding: 0; }
+      section { break-inside: avoid; margin-top: 36px; }
+      .stat, .card, .stage, .rule, .callout, table { box-shadow: none; background: white; color: #16232a; border-color: #aab7bd; }
+      code { color: #075c55; background: #edf8f6; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-nav">
+    <select aria-label="Jump to section" id="mobile-jump">
+      <option value="intro">Start here</option>
+      <option value="mental-model">Mental model</option>
+      <option value="setup">Environment setup</option>
+      <option value="opencode">Using OpenCode agents</option>
+      <option value="migration">Component migration</option>
+      <option value="validation">Validation</option>
+      <option value="troubleshooting">Troubleshooting</option>
+      <option value="checklist">Final checklist</option>
+    </select>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SB</div>
+        <div><strong>Migration Manual</strong><small>StoryBook-Test · Angular 16</small></div>
+      </div>
+      <div class="progress-label"><span>Reading progress</span><span id="progress-text">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <nav id="nav">
+        <div class="nav-group">Orientation</div>
+        <a href="#intro">Start here</a>
+        <a href="#mental-model">Mental model</a>
+        <a href="#rules">Golden rules</a>
+        <div class="nav-group">Prepare</div>
+        <a href="#setup">Environment setup</a>
+        <a href="#opencode">Using OpenCode</a>
+        <a href="#workspace">Migration workspace</a>
+        <div class="nav-group">Execute</div>
+        <a href="#migration">11-stage migration</a>
+        <a href="#validation">Validation</a>
+        <a href="#resume">Resume a migration</a>
+        <div class="nav-group">Reference</div>
+        <a href="#commands">Commands</a>
+        <a href="#troubleshooting">Troubleshooting</a>
+        <a href="#checklist">Final checklist</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header id="intro">
+        <p class="eyebrow">Operator guide · v1</p>
+        <h1>Move a legacy Angular component into a measurable stress lab.</h1>
+        <p class="lede">This guide takes a new contributor from an empty migration workspace to a faithful Storybook target tested at up to 100,000 items. OpenCode agents own one stage at a time; the human operator approves inputs, checks evidence, and starts the next stage.</p>
+        <div class="hero-meta">
+          <div class="stat"><strong>11</strong><span>ordered migration stages</span></div>
+          <div class="stat"><strong>1×</strong><span>generator run per target</span></div>
+          <div class="stat"><strong>100k</strong><span>maximum stress dataset</span></div>
+        </div>
+      </header>
+
+      <section id="mental-model">
+        <p class="eyebrow">Before touching code</p>
+        <h2>The migration is a pipeline, not a rewrite.</h2>
+        <div class="flow" aria-label="Migration flow">
+          <span>Inspect</span><b>›</b><span>Plan</span><b>›</b><span>Scaffold root</span><b>›</b><span>Adapt leaves first</span><b>›</b><span>Data</span><b>›</b><span>Harness</span><b>›</b><span>Test</span><b>›</b><span>Compare</span><b>›</b><span>Repair</span>
+        </div>
+        <div class="cards" style="margin-top:16px">
+          <article class="card">
+            <h3>Human responsibility</h3>
+            <ul>
+              <li>Provide component name and read-only legacy path.</li>
+              <li>Invoke one primary agent at a time.</li>
+              <li>Review each handoff before starting the next stage.</li>
+              <li>Supply missing assets, routes, or acceptance authority.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Agent responsibility</h3>
+            <ul>
+              <li>Load only current-stage context.</li>
+              <li>Use narrow subagents when their specialty is needed.</li>
+              <li>Validate outputs and record evidence.</li>
+              <li>Update state, write handoff, then stop.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="rules">
+        <p class="eyebrow">Non-negotiable</p>
+        <h2>Golden rules</h2>
+        <div class="rules">
+          <div class="rule"><strong>Legacy stays read-only</strong>Never edit production source, data, or configuration.</div>
+          <div class="rule"><strong>Discover top-down</strong>Start at root template and recursively map rendered children.</div>
+          <div class="rule"><strong>Implement bottom-up</strong>Finish and compile leaves before parents. Root UI comes last.</div>
+          <div class="rule"><strong>Generate once</strong>Run generator only for top-level benchmark target—never children.</div>
+          <div class="rule"><strong>Fidelity first</strong>Preserve DOM, classes, Less, interactions, and local UI state.</div>
+          <div class="rule"><strong>No guessing</strong>Missing source or unclear business logic means blocked, not invented.</div>
+        </div>
+      </section>
+
+      <section id="setup">
+        <p class="eyebrow">Part 1</p>
+        <h2>Set up the environment</h2>
+        <div class="callout"><strong>Do this once per workstation.</strong>Install Node.js, npm, OpenCode, and a Chromium browser supported by Playwright. Clone this repository and install dependencies.</div>
+        <div class="command">npm install<button class="copy" type="button">Copy</button></div>
+        <div class="command">npx playwright install chromium<button class="copy" type="button">Copy</button></div>
+        <div class="command">npm run build-storybook<button class="copy" type="button">Copy</button></div>
+
+        <h3 style="margin-top:28px">Connect the legacy application</h3>
+        <p>Keep the legacy repository beside this repository or at another stable path. Confirm you can read its component, template, styles, assets, package manifest, and global theme files. Do not copy the entire application into StoryBook-Test.</p>
+        <div class="callout warning"><strong>Bootstrap before the first component from a new application.</strong>Run Project Bootstrap when dependencies, themes, fonts, global Less, or shared primitives have not yet been prepared for that legacy application.</div>
+      </section>
+
+      <section id="opencode">
+        <p class="eyebrow">Part 2</p>
+        <h2>Use the agents in OpenCode</h2>
+        <p>Start OpenCode from repository root. Project agents are auto-discovered from <code>.opencode/agents/</code>. Primary agents appear by stage name; nested subagents use IDs such as <code>source-analysis/component-tree-analyzer</code>.</p>
+        <div class="cards">
+          <article class="card">
+            <h3>Primary agents</h3>
+            <p>Switch with OpenCode’s agent selector or Tab shortcut. Choose the stage you need, then give it component name and required source path.</p>
+            <div class="command">Use the Source Analysis Agent for customer-page. Legacy source: ../legacy-app/src/app/customer-page<button class="copy" type="button">Copy</button></div>
+          </article>
+          <article class="card">
+            <h3>Subagents</h3>
+            <p>Main agents select them automatically. You can also mention one explicitly for a narrow inspection, for example <code>@source-analysis/style-dependency-analyzer</code>.</p>
+            <p>Do not ask a subagent to run a full migration stage. Main agents own integration, state, validation, and handoffs.</p>
+          </article>
+        </div>
+        <p style="margin-top:16px">OpenCode agent definitions follow the official project convention and preserve the canonical bodies in <code>.agents/</code>. Regenerate mirrors after canonical prompt changes:</p>
+        <div class="command">node scripts/generate-opencode-agents.mjs<button class="copy" type="button">Copy</button></div>
+      </section>
+
+      <section id="workspace">
+        <p class="eyebrow">Evidence trail</p>
+        <h2>Know the migration workspace</h2>
+        <p>Every target gets one resumable workspace. Read <code>state.json</code> and latest handoff before invoking a stage.</p>
+        <div class="command">.migrations/&lt;component&gt;/
+├── state.json
+├── source/source-files.json
+├── analysis/          # tree, dependencies, summary
+├── plan/              # boundary, data contract, file plan
+├── logs/              # copies and meaningful decisions
+├── validation/        # builds, parity, evidence
+└── handoffs/          # one factual handoff per stage<button class="copy" type="button">Copy</button></div>
+        <div class="callout"><strong>Handoffs are gates.</strong>A completed file is not enough. Proceed only when state and handoff both say the stage passed its Definition of Done.</div>
+      </section>
+
+      <section id="migration">
+        <p class="eyebrow">Part 3</p>
+        <h2>Run the 11 stages</h2>
+        <p>Replace <code>[ component-name ]</code> with the top-level benchmark target, select the matching primary agent, and send the prompt shown on its card.</p>
+        <div class="stage-grid">
+          <article class="stage" data-step="01"><div class="stage-head"><span class="badge">Environment</span><h3>Project Bootstrap</h3></div><p>Prepare presentational dependencies, global Less, theme tokens, fonts, assets, and shared UI primitives.</p><ul><li>Run once for a new legacy app or global-theme change.</li><li>Confirm Angular and Storybook builds.</li><li>Does not migrate a target component.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Prepare the repository environment for migrating [ component-name ] from the legacy application. Run the Project Bootstrap stage, update its migration state and handoff, validate the build, and stop when this stage's Definition of Done is met.<button class="copy" type="button">Copy</button></div></div></article>
+          <article class="stage" data-step="02"><div class="stage-head"><span class="badge">Read-only</span><h3>Source Analysis</h3></div><p>Map the complete rendered tree from parent to leaves and classify every dependency.</p><ul><li>Input: root component path.</li><li>Output: tree, dependency inventories, risks.</li><li>Stop if a rendered child cannot be resolved.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Analyze [ component-name ] using the Source Analysis stage. Discover its complete rendered component tree top-down, inventory all dependencies, update migration state and handoff, and stop when this stage's Definition of Done is met.<button class="copy" type="button">Copy</button></div></div></article>
+          <article class="stage" data-step="03"><div class="stage-head"><span class="badge">Blueprint</span><h3>Migration Planning</h3></div><p>Define dumb boundary, post-order sequence, shared reuse, data contract, and exact file operations.</p><ul><li>Every child precedes its parent.</li><li>Every smart dependency gets a treatment.</li><li>No code migration yet.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Create the migration plan for [ component-name ] using the completed Source Analysis artifacts. Define the presentational boundary, strict post-order sequence, dependency treatments, data contract, file operations, state, and handoff. Stop when the Migration Planning Definition of Done is met.<button class="copy" type="button">Copy</button></div></div></article>
+          <article class="stage" data-step="04"><div class="stage-head"><span class="badge">One command</span><h3>Component Scaffold</h3></div><p>Create the benchmark root and registry entry with the repository generator.</p><div class="command">npm run generate:component [ component-name ]<button class="copy" type="button">Copy</button></div><ul><li>Run exactly once.</li><li>Never run for child components.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Scaffold [ component-name ] using the Component Scaffold stage. Run the repository generator exactly once for the top-level target, verify its folders and registry entry, update migration state and handoff, and stop when this stage's Definition of Done is met.<button class="copy" type="button">Copy</button></div></div></article>
+          <article class="stage" data-step="05"><div class="stage-head"><span class="badge">Core migration</span><h3>Component Tree Migration</h3></div><p>Copy and adapt one node at a time in strict post-order.</p><ul><li>Preserve DOM, classes, Less, local UI state.</li><li>Convert store/service/router/env boundaries.</li><li>Angular-template compile each node before parent.</li><li>Migrate root UI last.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Migrate the UI tree for [ component-name ] using the approved plan. Work one node at a time in strict post-order, validate every node before its parent, preserve source fidelity, update migration state and handoff, and stop when the Component Tree Migration Definition of Done is met.<button class="copy" type="button">Copy</button></div></div></article>
+          <article class="stage" data-step="06"><div class="stage-head"><span class="badge">Deterministic</span><h3>Data</h3></div><p>Build TypeScript models, Zod schemas, seeded factories, and baseline/edge/stress datasets.</p><ul><li>Default: 10–50 items.</li><li>Stress: 1k, 10k, 100k.</li><li>Validate every generated shape.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Implement deterministic benchmark data for [ component-name ] from the approved data contract. Add models, Zod schemas, seeded factories, default, edge, 1k, 10k, and 100k datasets; validate every shape; update state and handoff; then stop at the Data stage Definition of Done.<button class="copy" type="button">Copy</button></div></div></article>
+          <article class="stage" data-step="07"><div class="stage-head"><span class="badge">Lifecycle</span><h3>Harness</h3></div><p>Wire the UI to the benchmark container and create CSF3 stories.</p><ul><li>Extend <code>BaseBenchmarkContainerComponent&lt;T&gt;</code>.</li><li>Preserve ready/busy, race guards, size events, double rAF.</li><li>Use fullscreen stories and tracked interactions.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Create the benchmark harness and Storybook stories for [ component-name ]. Preserve the shared readiness, race, sizing, error, and double-requestAnimationFrame contract; wire tracked interactions; validate; update state and handoff; and stop at the Harness Definition of Done.<button class="copy" type="button">Copy</button></div></div></article>
+          <article class="stage" data-step="08"><div class="stage-head"><span class="badge">Registry</span><h3>Benchmark Integration</h3></div><p>Verify registry metadata, performance tracker, paint events, size propagation, and runner compatibility.</p><ul><li>Does not create stories.</li><li>Confirms existing harness integration.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Integrate [ component-name ] with the benchmark runtime. Verify registry metadata, performance tracking, paint-cycle events, size propagation, and runner compatibility; update migration state and handoff; and stop when the Benchmark Integration Definition of Done is met.<button class="copy" type="button">Copy</button></div></div></article>
+          <article class="stage" data-step="09"><div class="stage-head"><span class="badge">Browser test</span><h3>Test</h3></div><p>Create deterministic Playwright scenarios and capture FPS, heap, DOM, layout, and runtime failures.</p><ul><li>Wait for <code>data-ready="true"</code>.</li><li>No fixed sleeps.</li><li>Keep <code>workers: 1</code>.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Create and run the single-worker Playwright benchmark scenarios for [ component-name ]. Cover deterministic interactions and stress sizes, collect CDP performance metrics, capture runtime failures, update state and handoff, and stop when the Test stage Definition of Done is met.<button class="copy" type="button">Copy</button></div></div></article>
+          <article class="stage" data-step="10"><div class="stage-head"><span class="badge">Evidence</span><h3>Fidelity Validation</h3></div><p>Compare matching legacy and Storybook states across visuals, DOM, styles, behavior, and themes.</p><ul><li>Stable finding IDs.</li><li>Severity and lowercase status for every deviation.</li><li>Accepted differences need an explicit decision.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Validate fidelity for [ component-name ] by comparing matching legacy and Storybook states. Check visuals, normalized DOM, computed styles, interactions, and theme tokens; record evidence-backed findings; update state and handoff; and stop at this stage's Definition of Done.<button class="copy" type="button">Copy</button></div></div></article>
+          <article class="stage" data-step="11"><div class="stage-head"><span class="badge">Only if needed</span><h3>Repair</h3></div><p>Fix one reported failure with the smallest evidence-backed change.</p><ul><li>Reproduce narrow failure first.</li><li>Run full affected-stage validation after fix.</li><li>No broad cleanup or redesign.</li></ul><div class="agent-prompt"><span class="agent-prompt-label">Prompt to send</span><div class="command">Repair [ component-name ] using the unresolved finding in its latest validation report. Reproduce the narrow failure, apply the smallest evidence-backed fix, rerun the affected validation, update the finding, state, and handoff, and stop when the Repair Definition of Done is met.<button class="copy" type="button">Copy</button></div></div></article>
+        </div>
+      </section>
+
+      <section id="validation">
+        <p class="eyebrow">Part 4</p>
+        <h2>Validate before handoff</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Check</th><th>When</th><th>Command or evidence</th></tr></thead>
+            <tbody>
+              <tr><td>Angular compile</td><td>Bootstrap and every migrated node</td><td><code>npm run build</code> or Angular template-aware equivalent</td></tr>
+              <tr><td>Storybook static build</td><td>Environment, harness, integration</td><td><code>npm run build-storybook</code></td></tr>
+              <tr><td>Storybook dev health</td><td>Harness and interaction work</td><td><code>npm run storybook</code>, then inspect browser console</td></tr>
+              <tr><td>Targeted Playwright</td><td>Test stage and repairs</td><td><code>npx playwright test src/components/&lt;name&gt;/test/&lt;name&gt;.spec.ts --headed</code></td></tr>
+              <tr><td>Full benchmark</td><td>Final confidence run</td><td><code>npm run test:perf</code></td></tr>
+              <tr><td>Fidelity</td><td>After functional tests</td><td>Matched captures, DOM/style evidence, behaviors, themes, parity report</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warning"><strong>Never commit benchmark output.</strong>Files under <code>.artifacts/</code> are disposable measurements, not source.</div>
+      </section>
+
+      <section id="resume">
+        <p class="eyebrow">Interrupted work</p>
+        <h2>Resume safely</h2>
+        <ol>
+          <li>Open <code>.migrations/&lt;component&gt;/state.json</code>.</li>
+          <li>Read <code>currentStage</code>, <code>status</code>, warnings, and latest matching handoff.</li>
+          <li>If <code>in_progress</code> or <code>failed</code>, invoke the same primary agent.</li>
+          <li>If <code>blocked</code>, supply the exact missing prerequisite first.</li>
+          <li>Never skip forward because target files happen to exist.</li>
+        </ol>
+      </section>
+
+      <section id="commands">
+        <p class="eyebrow">Quick reference</p>
+        <h2>Commands you will use</h2>
+        <div class="command">npm run storybook<button class="copy" type="button">Copy</button></div>
+        <div class="command">npm run build-storybook<button class="copy" type="button">Copy</button></div>
+        <div class="command">npm run generate:component &lt;name&gt;<button class="copy" type="button">Copy</button></div>
+        <div class="command">npm run test:fast<button class="copy" type="button">Copy</button></div>
+        <div class="command">npm run test:perf<button class="copy" type="button">Copy</button></div>
+        <div class="command">npx playwright test src/components/&lt;name&gt;/test/&lt;name&gt;.spec.ts --headed<button class="copy" type="button">Copy</button></div>
+      </section>
+
+      <section id="troubleshooting">
+        <p class="eyebrow">When something fails</p>
+        <h2>Diagnose smallest scope first</h2>
+        <div class="cards">
+          <article class="card"><h3>Unknown selector or input</h3><p>Confirm child migrated first, standalone import exists, selector matches source, and parent did not jump ahead.</p></article>
+          <article class="card"><h3>Injector/provider failure</h3><p>Keep presentation providers. Convert application data/control/environment dependencies at planned boundary.</p></article>
+          <article class="card"><h3>Story stays busy</h3><p>Inspect generator errors, stale request guards, size event, and double-rAF completion. Do not add arbitrary waits.</p></article>
+          <article class="card"><h3>Playwright timeout</h3><p>Check page errors and <code>data-ready</code> first. Prefer semantic locators. Keep one worker.</p></article>
+          <article class="card"><h3>Less variable missing</h3><p>Trace source token, include path, casing, and theme import. Do not approximate the value.</p></article>
+          <article class="card"><h3>100k memory growth</h3><p>Repeat fixed-seed runs; inspect retained heap, DOM nodes, listeners, timers, detached nodes, and lifecycle cleanup.</p></article>
+        </div>
+      </section>
+
+      <section id="checklist">
+        <p class="eyebrow">Ship gate</p>
+        <h2>Component ready checklist</h2>
+        <p>Selections save in this browser.</p>
+        <div class="checklist" id="checklist-items">
+          <label class="check"><input type="checkbox"><span>All 11 stage handoffs exist or Repair is correctly skipped because no finding requires it.</span></label>
+          <label class="check"><input type="checkbox"><span>Legacy source has no changes.</span></label>
+          <label class="check"><input type="checkbox"><span>Generator ran once for root and never for children.</span></label>
+          <label class="check"><input type="checkbox"><span>Every UI node is standalone, OnPush, and free of application store/service/router dependencies.</span></label>
+          <label class="check"><input type="checkbox"><span>Types, Zod schemas, and deterministic default/edge/1k/10k/100k datasets validate.</span></label>
+          <label class="check"><input type="checkbox"><span>Harness preserves readiness, busy/error state, race guard, size event, and double rAF.</span></label>
+          <label class="check"><input type="checkbox"><span>Storybook builds and renders without unhandled console errors.</span></label>
+          <label class="check"><input type="checkbox"><span>Targeted Playwright tests pass with one worker and no fixed sleeps.</span></label>
+          <label class="check"><input type="checkbox"><span>100k stress scenario records expected metrics without retained-growth regression.</span></label>
+          <label class="check"><input type="checkbox"><span>Parity report contains evidence and status for every visual, DOM, behavior, and theme difference.</span></label>
+          <label class="check"><input type="checkbox"><span>No files under .artifacts/ are staged or committed.</span></label>
+        </div>
+      </section>
+
+      <footer>
+        Canonical references: <a href="WORKFLOW.md">workflow</a>, <a href="MIGRATION_ARTIFACTS.md">artifacts</a>, <a href="COMPONENT_TREE_MIGRATION.md">tree migration</a>, <a href="COMPONENT_BOUNDARIES.md">boundaries</a>, <a href="FIDELITY.md">fidelity</a>, and <a href="TROUBLESHOOTING.md">troubleshooting</a>.
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    const sections = [...document.querySelectorAll('main [id]')];
+    const navLinks = [...document.querySelectorAll('#nav a')];
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+
+    function updateScrollState() {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      const percent = max > 0 ? Math.min(100, Math.round(scrollY / max * 100)) : 100;
+      progressFill.style.width = percent + '%';
+      progressText.textContent = percent + '%';
+      let current = sections[0]?.id;
+      for (const section of sections) if (section.getBoundingClientRect().top <= 140) current = section.id;
+      navLinks.forEach(link => link.classList.toggle('active', link.hash === '#' + current));
+    }
+    addEventListener('scroll', updateScrollState, { passive: true });
+    updateScrollState();
+
+    document.getElementById('mobile-jump').addEventListener('change', event => {
+      document.getElementById(event.target.value)?.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    document.querySelectorAll('.copy').forEach(button => {
+      button.addEventListener('click', async () => {
+        const value = button.parentElement.textContent.replace(/Copy$/, '').trim();
+        await navigator.clipboard.writeText(value);
+        button.textContent = 'Copied';
+        setTimeout(() => button.textContent = 'Copy', 1200);
+      });
+    });
+
+    document.querySelectorAll('#checklist-items input').forEach((input, index) => {
+      const key = 'storybook-migration-check-' + index;
+      input.checked = localStorage.getItem(key) === 'true';
+      input.addEventListener('change', () => localStorage.setItem(key, String(input.checked)));
+    });
+  </script>
+</body>
+</html>
