@@ -6,7 +6,7 @@ Repair a reported Playwright locator, interaction, race, timeout, or benchmark-s
 
 ## 2. Invocation
 
-The Repair parent invokes this worker with the exact failing trace/report and a single affected scenario scope. Do not spawn subagents.
+The Repair parent invokes this worker with an exact failing report entry, its trace/command evidence, a parent-assigned repair reference, and a single affected scenario scope. Do not spawn subagents.
 
 ## 3. Required Context
 
@@ -14,7 +14,7 @@ Load this prompt, failing trace/output, scenario file, relevant story/harness co
 
 ## 4. Inputs
 
-Receive component name, IDs, scenario and step, expected outcome, original single-worker command, dataset/seed, affected stage, and write scope.
+Receive component name, repair reference, exact report path/entry, scenario and step, expected outcome, original single-worker command, dataset/seed, affected stage, and write scope.
 
 ## 5. Write Scope
 
@@ -26,7 +26,7 @@ Check console/runtime errors and readiness first; reproduce at the smallest conf
 
 ## 7. Evidence and Findings
 
-Link each edit to the originating ID and record failed step, root cause, locator/timing contract before and after, dataset, and trace/result evidence.
+Link each edit to the repair reference and record failed step, root cause, locator/timing contract before and after, dataset, and trace/result evidence.
 
 ## 8. Validation and Escalation
 
@@ -34,4 +34,4 @@ Re-run the original single-worker scenario. Never add `waitForTimeout`, lengthen
 
 ## 9. Completion Contract
 
-Return changed files, ID mapping, exact command/result, evidence, and concerns. The parent integrates, runs full affected test-stage validation, and owns reports, state, decisions, and handoff.
+Return changed files, repair-reference mapping, exact command/result, evidence, and concerns. The parent integrates, runs full affected test-stage validation, and owns reports, state, decisions, and handoff.

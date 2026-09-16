@@ -6,7 +6,7 @@ Repair a reported Less, CSS class, layout, geometry, or state-style failure with
 
 ## 2. Invocation
 
-The Repair parent invokes this worker from explicit build or parity evidence with exact selectors/properties. Do not spawn subagents.
+The Repair parent invokes this worker with an exact build/parity report entry, its diagnostic or comparison evidence, a parent-assigned repair reference, and exact selectors/properties. Do not spawn subagents.
 
 ## 3. Required Context
 
@@ -14,7 +14,7 @@ Load this prompt, report entries and captures, implicated Less/template files, a
 
 ## 4. Inputs
 
-Receive component name, IDs, selectors/states, expected and actual values, evidence paths, original command/comparison, affected stage, and write scope.
+Receive component name, repair reference, exact report path/entry, selectors/states, expected and actual values, evidence paths, original command/comparison, affected stage, and write scope.
 
 ## 5. Write Scope
 
@@ -26,7 +26,7 @@ Trace cascade, specificity, class, asset, token, flex/grid, and overflow evidenc
 
 ## 7. Evidence and Findings
 
-Map each selector/property edit to its stable ID and retain expected/actual values plus before/after evidence and minimal-change rationale.
+Map each selector/property edit to its repair reference and retain expected/actual values plus before/after evidence and minimal-change rationale.
 
 ## 8. Validation and Escalation
 
@@ -34,4 +34,4 @@ Re-run the failing Less build or affected visual/style comparison with `threshol
 
 ## 9. Completion Contract
 
-Return changed files, ID mapping, command/comparison result, evidence paths, and concerns. The parent owns integration, full affected-stage validation, resolution status, state, decisions, and handoff.
+Return changed files, repair-reference mapping, command/comparison result, evidence paths, and concerns. The parent owns integration, full affected-stage validation, resolution status, state, decisions, and handoff.

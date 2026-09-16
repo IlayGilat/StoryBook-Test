@@ -6,7 +6,7 @@ Repair a reported Zod validation, deterministic generator, data-shape, or size-d
 
 ## 2. Invocation
 
-The Repair parent invokes this worker only with explicit schema/generator failure evidence and a bounded data scope. Do not spawn subagents.
+The Repair parent invokes this worker only with an exact schema/generator report entry, its diagnostic/command evidence, a parent-assigned repair reference, and a bounded data scope. Do not spawn subagents.
 
 ## 3. Required Context
 
@@ -14,7 +14,7 @@ Load this prompt, exact validation/crash evidence, implicated schema/generator/c
 
 ## 4. Inputs
 
-Receive component name, failure IDs, expected type/schema, failing payload/seed/size, original command, affected stage, and write scope.
+Receive component name, repair reference, exact report path/entry, expected type/schema, failing payload/seed/size, original command, affected stage, and write scope.
 
 ## 5. Write Scope
 
@@ -26,7 +26,7 @@ Reproduce with the reported deterministic seed and smallest size; trace mismatch
 
 ## 7. Evidence and Findings
 
-Link each change to its failure ID and record root cause, failing seed/size, contract correction, and before/after validation evidence.
+Link each change to its repair reference and record root cause, failing seed/size, contract correction, and before/after validation evidence.
 
 ## 8. Validation and Escalation
 
@@ -34,4 +34,4 @@ Re-run the original failing seed/size command. Escalate missing source authority
 
 ## 9. Completion Contract
 
-Return changed files, ID mapping, seed/size and command/result, and concerns. The parent integrates, runs full affected-stage validation, and owns reports, state, decisions, and handoff.
+Return changed files, repair-reference mapping, seed/size and command/result, and concerns. The parent integrates, runs full affected-stage validation, and owns reports, state, decisions, and handoff.

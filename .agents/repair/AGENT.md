@@ -11,8 +11,8 @@ Invoke with `Use the Repair Agent for <component-name> to resolve <issue-descrip
 ## 3. Preconditions
 
 - `.migrations/<component>/state.json` exists.
-- The request names at least one stable failure or finding ID and its exact report path.
-- The report contains reproducible evidence and identifies, or permits narrow diagnosis of, the failing scope.
+- The request identifies at least one exact report entry and its report path. A parity entry retains its stable finding ID when present; other entries do not need a pre-existing ID.
+- The report entry contains diagnostic or command evidence and identifies, or permits narrow diagnosis of, the failing scope.
 - The external legacy source remains read-only. If the evidence is absent or the requested result requires authority to accept a deviation, mark the stage `blocked` and stop.
 
 ## 4. Required Context
@@ -40,8 +40,8 @@ Do not load unrelated components, stages, reports, or broad source trees by defa
 ## 7. Inputs
 
 - Component name.
-- Stable failure or finding IDs.
-- Exact evidence/report paths and original failing command or comparison.
+- Exact evidence/report path, entry locator, and original failing diagnostic, command, or comparison.
+- Existing parity finding IDs when present; otherwise the information needed to derive a deterministic repair-local ID.
 - Expected behavior and affected stage.
 - Narrow candidate source scope, when known.
 
@@ -77,19 +77,20 @@ Delegate only through `.agents/skills/subagent-driven-development/SKILL.md`. Do 
 
 ## 11. Procedure
 
-1. Verify each named issue exists in an explicit report and preserve its original evidence.
-2. Set `currentStage` to `repair`, `status` to `in_progress`, and update schema metadata.
-3. Reproduce or narrowly confirm the failure before editing when safe and deterministic.
-4. Identify the root cause and dispatch one narrow worker with explicit IDs, files, and write scope.
-5. Integrate the smallest surgical fix. No opportunistic cleanup, redesign, broad rewrite, or unrelated dependency upgrade.
-6. Re-run the original failed or affected validation first. If it passes, run the full validation owned by the affected stage to detect regressions.
-7. Update findings with stable resolution references, record meaningful decisions, finalize state and handoff, and stop.
+1. Verify each named issue exists as an exact entry in an explicit report and preserve its original diagnostic or command evidence.
+2. Preserve an existing parity finding ID. For any non-parity entry without an ID, assign `REP-<REPORT-SLUG>-<ENTRY-ORDINAL>` before work: derive `REPORT-SLUG` from the extensionless repository-relative report path by lowercasing it, replacing each run of non-alphanumeric characters with one hyphen, and trimming outer hyphens; format the one-based entry position as a three-digit `ENTRY-ORDINAL`. Record the ID and never renumber it.
+3. Set `currentStage` to `repair`, `status` to `in_progress`, and update schema metadata.
+4. Reproduce or narrowly confirm the failure before editing when safe and deterministic.
+5. Identify the root cause and dispatch one narrow worker with the repair reference, exact report entry, files, and write scope.
+6. Integrate the smallest surgical fix. No opportunistic cleanup, redesign, broad rewrite, or unrelated dependency upgrade.
+7. Re-run the original failed or affected validation first. If it passes, run the full validation owned by the affected stage to detect regressions.
+8. Update the originating entry with a stable resolution reference, record meaningful decisions, finalize state and handoff, and stop.
 
 ## 12. Evidence and Finding Contract
 
-Every action references the originating stable ID, report path, evidence, and original failing command. Preserve the finding's ID, severity, expected/actual values, and original status history. Update status to `RESOLVED` only with a resolution reference to the changed files plus passing command, replacement capture, commit, or repair handoff. Never convert a `CRITICAL` or `MAJOR` finding to `ACCEPTED` without explicit authority and a matching decisions entry.
+Every action references a repair reference, exact report entry, report path, evidence, and original failing diagnostic or command. Preserve a parity finding's ID, severity, expected/actual values, and original status history. For a non-parity entry without an ID, use the deterministic repair-local ID assigned before work. Update parity status to the canonical lowercase `resolved` only with a resolution reference to the changed files plus passing command, replacement capture, commit, or repair handoff. Never set a `CRITICAL` or `MAJOR` parity finding to `accepted` without explicit authority and a matching decisions entry.
 
-Repair evidence records root cause, minimal-change rationale, files changed, commands and results, affected-stage regression result, and remaining risks. If diagnosis reveals a different failure, assign or request a new stable ID rather than silently expanding scope.
+Repair evidence records root cause, minimal-change rationale, files changed, commands and results, affected-stage regression result, and remaining risks. If diagnosis reveals a different failure, require its exact report entry and preserve its parity ID or assign its deterministic repair-local ID rather than silently expanding scope.
 
 ## 13. Validation
 
@@ -109,7 +110,7 @@ Write `.migrations/<component>/handoffs/repair-<timestamp>.md` using the exact s
 - Root cause and minimal-change rationale are recorded.
 - The original failed or affected check passes.
 - Full affected-stage validation passes without regression.
-- Originating findings retain stable IDs and evidence and now have valid resolution references.
+- Originating parity findings retain stable IDs and evidence; non-parity entries retain deterministic repair-local IDs; every repaired entry has a valid resolution reference.
 - Decisions, state, and timestamped repair handoff are complete and consistent.
 
 ## 17. Stop Conditions

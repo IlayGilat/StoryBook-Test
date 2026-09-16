@@ -6,7 +6,7 @@ Repair specific open `CRITICAL` or `MAJOR` parity findings with the smallest sou
 
 ## 2. Invocation
 
-The Repair parent invokes this worker only with stable finding IDs from `parity-report.json`, matched evidence, and an assigned source scope. Do not spawn subagents.
+The Repair parent invokes this worker only with an exact `parity-report.json` entry, its stable finding ID as the repair reference, matched evidence, and an assigned source scope. Do not spawn subagents.
 
 ## 3. Required Context
 
@@ -14,7 +14,7 @@ Load this prompt, exact finding records, referenced legacy/Storybook evidence, i
 
 ## 4. Inputs
 
-Receive component name, stable IDs/severity/status, expected/actual values, selectors/states/themes, evidence paths, affected comparison command, and write scope.
+Receive component name, repair reference/stable parity ID, severity and canonical lowercase status, exact report entry, expected/actual values, selectors/states/themes, evidence paths, affected comparison command, and write scope.
 
 ## 5. Write Scope
 
@@ -34,4 +34,4 @@ Re-run only the affected parity comparison first, using `threshold: 0.1` and `ma
 
 ## 9. Completion Contract
 
-Return changed files, per-ID comparison results and evidence, commands, and concerns. The parent decides `RESOLVED`, integrates reports/state/decisions, runs full affected fidelity validation, and writes the handoff.
+Return changed files, per-ID comparison results and evidence, commands, and concerns. The parent decides whether the canonical status becomes `resolved`, integrates reports/state/decisions, runs full affected fidelity validation, and writes the handoff.

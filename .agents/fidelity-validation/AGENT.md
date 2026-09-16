@@ -86,7 +86,7 @@ Delegate only through `.agents/skills/subagent-driven-development/SKILL.md`. Con
 
 Each finding keeps a stable ID such as `FID-VIS-001`, `FID-DOM-001`, `FID-BEH-001`, or `FID-THM-001`; never renumber an existing ID. Record dimension, selector/state/theme, expected and actual values, legacy evidence path, Storybook evidence path, severity, status, rationale, and resolution reference.
 
-Allowed severities are `CRITICAL`, `MAJOR`, `MINOR`, and `ACCEPTED`. Allowed statuses are `OPEN`, `RESOLVED`, and `ACCEPTED`. `ACCEPTED` severity and status require a matching `logs/decisions.md` reference. A resolved finding retains its original evidence and links to the repair handoff, commit, command result, or replacement capture that proved resolution. Zero deviations may remain unclassified.
+Allowed severities are `CRITICAL`, `MAJOR`, `MINOR`, and `ACCEPTED`. Allowed statuses are the canonical lowercase values `open`, `accepted`, and `resolved`. `ACCEPTED` severity and `accepted` status require a matching `logs/decisions.md` reference. A `resolved` finding retains its original evidence and links to the repair handoff, commit, command result, or replacement capture that proved resolution. Zero deviations may remain unclassified.
 
 ## 13. Validation
 

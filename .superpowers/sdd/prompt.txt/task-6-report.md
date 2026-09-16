@@ -41,7 +41,7 @@ Task 5: complete (commits 89f0621..9a42258, review clean)
 - Legacy source is read-only and capture evidence is stored only under the migration validation area.
 - Fidelity covers matched capture conditions, screenshot, normalized DOM, computed styles, interactions, and supported themes.
 - Playwright image policy is `threshold: 0.1` and `maxDiffPixelRatio: 0.002`, with evidence-backed calibration only and mandatory review of coherent differences even when the numeric gate passes.
-- Findings retain stable IDs, `CRITICAL` / `MAJOR` / `MINOR` / `ACCEPTED` severity, `OPEN` / `RESOLVED` / `ACCEPTED` status, original evidence, and resolution or decisions references.
+- Parity findings retain stable IDs, `CRITICAL` / `MAJOR` / `MINOR` / `ACCEPTED` severity, canonical lowercase `open` / `accepted` / `resolved` status, original evidence, and resolution or decisions references.
 - Repairs require explicit reports or findings, use the smallest surgical change, prohibit redesign and broad refactoring, rerun the narrow failing check first, and then run the full affected-stage validation.
 - Shared state and handoff paths are canonical. Workers do not edit state, shared reports, decisions, or handoffs; the parent owns integration.
 - Context is lazy, delegation references only the existing SDD skill, and neither stage auto-advances.
@@ -95,3 +95,38 @@ Reviewed for overreach: the new files define agent behavior only; they do not mi
 ## Concerns
 
 None.
+
+## Fix Round 1
+
+Addressed two Important review findings:
+
+1. Standardized parity finding statuses on canonical lowercase `open`, `accepted`, and `resolved`. Uppercase `ACCEPTED` remains only as the defined severity value.
+2. Removed the requirement that every non-parity repair arrive with a pre-existing ID. Repair now accepts an exact report entry with diagnostic or command evidence, preserves a parity finding ID when present, and otherwise assigns deterministic `REP-<REPORT-SLUG>-<ENTRY-ORDINAL>` before work. All eight repair workers consume the exact entry and parent-assigned repair reference.
+
+Focused validation command groups:
+
+```powershell
+Get-ChildItem .agents\fidelity-validation,.agents\repair -Filter AGENT.md -File
+Get-ChildItem .agents\fidelity-validation\workers,.agents\repair\workers -Filter *.md -File
+Select-String -Path <main> -Pattern '^## (\d+)\. '
+Select-String -Path <worker> -Pattern '^## (\d+)\. '
+Select-String -Path <phase-files> -Pattern '\bOPEN\b|\bRESOLVED\b' -CaseSensitive
+Select-String -Path <phase-files> -Pattern '\bACCEPTED\b' -CaseSensitive
+Select-String -Path .agents\repair\AGENT.md -Pattern 'exact report entry|diagnostic or command evidence|REP-<REPORT-SLUG>-<ENTRY-ORDINAL>|canonical lowercase `resolved`'
+Select-String -Path .agents\repair\workers\*.md -Pattern 'exact .*report.*entry|repair reference'
+git diff --name-only -- src .migrations
+git diff --check
+```
+
+Results:
+
+- PASS — exact inventory remains 2 mains and 14 workers.
+- PASS — main sections remain exactly `1..17`; worker sections remain exactly `1..9`.
+- PASS — statuses are lowercase; uppercase `ACCEPTED` occurs only in severity context.
+- PASS — repair accepts exact report entries and diagnostic/command evidence, preserves parity IDs, and deterministically assigns non-parity repair-local IDs.
+- PASS — all eight repair workers require an exact report entry and repair reference.
+- PASS — canonical state and handoff paths remain present.
+- PASS — Markdown fences, final newlines, whitespace, and `git diff --check` are clean.
+- PASS — no files under `src/` or `.migrations/` changed.
+
+Self-review note: the first status scan used PowerShell's default case-insensitive matching and falsely matched lowercase `resolved`; the validator was corrected with `-CaseSensitive`, then the complete focused check passed.

@@ -6,7 +6,7 @@ Repair a reported template binding, input/output wiring, rendered-state, or OnPu
 
 ## 2. Invocation
 
-The Repair parent invokes this worker with explicit report/finding IDs and an assigned component scope. Do not spawn subagents.
+The Repair parent invokes this worker with an exact report entry, its diagnostic/command evidence, a parent-assigned repair reference, and an assigned component scope. Do not spawn subagents.
 
 ## 3. Required Context
 
@@ -14,7 +14,7 @@ Load this prompt, exact failure evidence, implicated template/component contract
 
 ## 4. Inputs
 
-Receive component name, IDs, expected and actual behavior, source/test paths, reproduction steps, original validation command, affected stage, and write scope.
+Receive component name, repair reference, exact report path/entry, expected and actual behavior, source/test paths, reproduction steps, original validation command, affected stage, and write scope.
 
 ## 5. Write Scope
 
@@ -26,7 +26,7 @@ Trace the real binding and controlled-value flow; repair the smallest template, 
 
 ## 7. Evidence and Findings
 
-Preserve originating IDs and record root cause, contract before/after, changed files, and observable resolution evidence.
+Preserve the repair reference and record root cause, contract before/after, changed files, and observable resolution evidence.
 
 ## 8. Validation and Escalation
 
@@ -34,4 +34,4 @@ Re-run the narrow failing UI/story/test check. Escalate a contract redesign, mis
 
 ## 9. Completion Contract
 
-Return changed files, ID mapping, command/result, and concerns. The parent integrates, runs full affected-stage validation, and owns reports, state, decisions, and handoff.
+Return changed files, repair-reference mapping, command/result, and concerns. The parent integrates, runs full affected-stage validation, and owns reports, state, decisions, and handoff.

@@ -6,7 +6,7 @@ Repair a reported harness readiness, race, sizing, double-requestAnimationFrame,
 
 ## 2. Invocation
 
-The Repair parent invokes this worker with an explicit test/runtime report and bounded harness/story scope. Do not spawn subagents.
+The Repair parent invokes this worker with an exact test/runtime report entry, its diagnostic/command evidence, a parent-assigned repair reference, and bounded harness/story scope. Do not spawn subagents.
 
 ## 3. Required Context
 
@@ -14,7 +14,7 @@ Load this prompt, exact trace/console evidence, implicated harness/story files, 
 
 ## 4. Inputs
 
-Receive component name, IDs, reproduction steps, expected readiness/busy/error behavior, original command, affected stage, and write scope.
+Receive component name, repair reference, exact report path/entry, reproduction steps, expected readiness/busy/error behavior, original command, affected stage, and write scope.
 
 ## 5. Write Scope
 
@@ -26,7 +26,7 @@ Trace generation identity, stale-result guards, size events, lifecycle cleanup, 
 
 ## 7. Evidence and Findings
 
-Map changes to stable IDs and record the failing state transition, root cause, corrected transition, and observable readiness/render evidence.
+Map changes to the repair reference and record the failing state transition, root cause, corrected transition, and observable readiness/render evidence.
 
 ## 8. Validation and Escalation
 
@@ -34,4 +34,4 @@ Re-run the original story or scenario check without arbitrary waits. Escalate a 
 
 ## 9. Completion Contract
 
-Return changed files, ID mapping, command/result, and concerns. The parent integrates, runs full harness/benchmark-stage validation, and owns reports, state, decisions, and handoff.
+Return changed files, repair-reference mapping, command/result, and concerns. The parent integrates, runs full harness/benchmark-stage validation, and owns reports, state, decisions, and handoff.
